@@ -1,0 +1,18 @@
+according to book <<effecient c++ performance programming technique >> chapter15
+a few tricks can increase scalability of an application
+	comtemporary mainframe is mostly a SMP architecture in which multiple symmetric
+processors with its private cache communicate with memory through a single bus.
+	based on SMP arch, we can do followsing to boost scalability:
+		1>Split a monolithic task into multiple subtasks that are conducive to parallel execution by concurrent threads
+		2>Code motion. Critical sections should contain critical code and nothing else
+		3>Cache. At times, it may be possible to eliminate execution visits to a critical section by caching the result of an earlier visit.
+		4>Share nothing. If you only need a small, fixed number of resource instances, you should avoid the use of public resource pools. 
+			Make those instances thread-private and recycle them. 
+		5>Partial-sharing. It is better to have two identical pools with half the contention. ideally, each thread has its own pool.
+		6>Lock granularity. Don't fuse resources under the protection of the same lock unless they are always updated together.
+		7>False sharing. Don't place two hot locks in close proximity in the class definition. You don't want them to share the same cache line and trigger cache consistency storms.
+			by adding CACHE_LINE_SIZE padding chars, two hot locks can be seperated into two cachelines. 
+		8>Thundering Herd. Investigate the characteristics of your locking calls. When the lock is freed, does it wake up all waiting threads or just one? 
+			Those that wake up all threads threaten the scalability of an application.
+		9>System and library calls. Investigate the characteristics of their implementation. Some of them are hiding significant portions of serialized code.
+		10>Reader/writer locks. Shared data that is read-mostly will benefit from these locks. They eliminate contention among reader threads.

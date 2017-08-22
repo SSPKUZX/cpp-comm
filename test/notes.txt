@@ -1,0 +1,10 @@
+/* *
+ * global, local and static variables get inited by default constructor
+ * but the generated default constructor won't zero local variable;
+ *
+ * manual guard: provide a custom default constructor and init each fields
+ *
+ * */
+// inline function should be put into header file
+// if put in cpp file, it could only be used in
+// that cpp file

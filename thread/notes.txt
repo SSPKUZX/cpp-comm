@@ -1,0 +1,34 @@
+<<the pillars of concurrency>> on the url:http://www.drdobbs.com/parallel/the-pillars-of-concurrency/200001985
+
+all concurrency problems can be decomposed into three categories:
+	1> responsiveness and isolation via asynchronous agents
+		it's about running separate tasks independently and communicating with each other 
+	via asynchrounous message. generally, expensive or high-latency tasks get moved off the 
+	interactive or time-sensitive thread to keep it responsive like the GUI thread. those
+	threads communicate through message queue or alike abstraction, like futures.
+		in comming years, active objects/services( running on their own threads and calling
+	asynchrounously), channels between tasks and contracts that express, enforce and validate
+	the message order would be preferred.
+
+	2> throughput and scalabilty via concurrent collections
+		it's about keeping hundreds of cores busy to get the result faster through algorithm 
+	and data structures.
+		one way is to use libraries and abstraction to express what you want to do, like openMP
+	,parallel STL or parallel LINQ. the way is to express the work in parallel, running on thread
+	pool. the future runtime system based on work stealing can free us from worring whether pool
+	is big enough so that we can just express all possibal parallalism.
+
+	3> consistency via safely shared resources
+		it's about protecting mutable objects from corruption through locks, lock-free data 
+	structures and transaction memory alike.
+	
+		
+
+<<prefer active objects to naked thread>> on the url:http://www.drdobbs.com/parallel/prefer-using-active-objects-instead-of-n/225700095
+
+		an active object keeps data and an thread private so that no mutex on data is needed and 
+	communicate with other threads with async messages. if possible, callbacks can be providede to
+	process the result.
+		more detail, please refer to active_object.cpp.		
+
+

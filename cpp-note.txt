@@ -1,0 +1,17 @@
+purpose:
+	1> what is code quality;
+	2> how to improve
+
+good code: readability( comment, naming),stability( arch, exception, complexity, ),maintainability,specialization
+
+arch design( key&non-functional requirement, 5 views: logical&physical&develop&procedural&scenario view )
+complexity( KISS: keep it simple&stupid; function scale; )
+exception( if incapable of dealing, rethrow it to outer level rather than ignore it)
+compiler( respect to warnings; )
+overload protection: memory, threads, connections, disk space
+
+maintain: scalability( separation: layers, modules; design patterns: flexibility does cost, simplicity ), reuse, common tech, platform-agnostic 
+
+
+
+
