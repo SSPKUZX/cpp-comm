@@ -17,7 +17,7 @@ namespace thd
 	};
 
 	template<class RetType>
-	class RunnableWrapper final : public Runnable, public ::cmn::Noncopyable
+	class RunnableWrapper final : public Runnable, private ::cmn::Noncopyable
 	{
 		public:
 			explicit RunnableWrapper( std::packaged_task<RetType()>&& task) : m_task(std::move(task)){}
@@ -43,13 +43,12 @@ namespace thd
 		return ::cmn::make_unique<RunnableWrapper<RetType>>(std::move(task));	
 	}
 
-	class ThreadPool final: public ::cmn::Noncopyable
+	class ThreadPool final: private ::cmn::Noncopyable
 	{
 		public:
 			ThreadPool( const size_t pool_size= 3) : m_done(false), m_pool_size(pool_size)
 			{ m_pool.reserve(pool_size); }
-			~ThreadPool()
-			{
+			~ThreadPool(){
 				for( auto& thd : m_pool)
 					thd.join();	
 			}
@@ -63,7 +62,7 @@ namespace thd
 				}
 			}
 			// stop running
-			void Interrupt() {
+			inline void Interrupt() {
 				m_done = true;	
 			}
 
@@ -95,7 +94,8 @@ namespace thd
 						{
 							std::lock_guard<std::mutex> lg(m_queue_mutex);
 							if(m_task_queue.empty()) {
-								std::this_thread::yield();		
+						//		std::this_thread::yield();		
+								std::this_thread::sleep_for(std::chrono::milliseconds(100));
 							} else {
 								task = std::move(m_task_queue.front());	
 								m_task_queue.pop();
