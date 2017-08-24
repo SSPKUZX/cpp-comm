@@ -61,7 +61,7 @@ namespace cmn
 		fnot_wrapper( Predicate predicate) : m_pred(predicate){}		
 		bool operator()(){ return !m_pred(); }
 
-		typename std::decay<Predicate>::type m_pred;
+		Predicate m_pred;
 	};
 
 	template<class Predicate>

@@ -1,3 +1,6 @@
+//good place to explain
+//https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync
+
 #include<atomic>
 #include<memory>
 #include<iostream>

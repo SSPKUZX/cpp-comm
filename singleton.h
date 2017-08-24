@@ -19,7 +19,7 @@ namespace cmn
 	};
 */
 	template<typename Tp, bool defaulted = true>//InitType it = InitType::defaulted>
-	class Singleton : public Noncopyable
+	class Singleton : private Noncopyable
 	{
 		public:
 			static Tp& Instance()
@@ -34,7 +34,7 @@ namespace cmn
 				// info known only once the program is up and running
 				// ### it's unnecessary to be zero-argument default constructed 	
 				// ### it should support various constructor
-				static Singleton<Tp> s_instance;  
+				static Tp s_instance;  
 
 				return s_instance;
 			}

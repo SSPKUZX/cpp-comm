@@ -1,7 +1,7 @@
 #include "singleton.h"
 
 #include <string>
-
+#include <cassert>
 #include <iostream>
 
 using namespace cmn;
@@ -48,6 +48,7 @@ int main()
 	printer.Print();
 	auto& s_printer = Singleton<Printer>::Instance();  
 	s_printer.Print();
+	assert(&printer==&s_printer);
 
 	auto& fs_initor = FileSystem::Instance("customized_fs");
 	fs_initor.Read();
@@ -56,10 +57,12 @@ int main()
 	auto& fs_initor2 = FileSystem::Instance("fs2");  // fs can only inited once, so this won't trigger initialization again
 	fs_initor2.Read();
 	fs_initor2.Write();
+	assert(&fs_initor==&fs_initor2);
 
 	auto& fs = FileSystem::Instance(); //Singleton<FileSystem>::Instance() also works 	
 	fs.Read();
 	fs.Write();
+	assert(&fs==&fs_initor2);
 
 	return 0;
 }

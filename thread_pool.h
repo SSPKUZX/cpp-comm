@@ -4,8 +4,8 @@
 #include <mutex>
 #include <queue>
 
-#include "../noncopyable.h"
-#include "../make_unique.h"
+#include "noncopyable.h"
+#include "make_unique.h"
 
 namespace thd
 {

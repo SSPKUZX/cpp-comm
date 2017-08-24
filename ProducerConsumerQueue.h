@@ -77,6 +77,7 @@ struct ProducerConsumerQueue {
 
   template<class ...Args>
   bool write(Args&&... recordArgs) {
+	// only writer thread could change $writeIndex_, so $writeIndex_ is always synchronizedly right
     auto const currentWrite = writeIndex_.load(std::memory_order_relaxed);
     auto nextRecord = currentWrite + 1;
     if (nextRecord == size_) {
@@ -94,6 +95,7 @@ struct ProducerConsumerQueue {
 
   // move (or copy) the value at the front of the queue to given variable
   bool read(T& record) {
+	// only reader thread could change $readIndex_, so $readIndex_ is always synchronizedly right
     auto const currentRead = readIndex_.load(std::memory_order_relaxed);
     if (currentRead == writeIndex_.load(std::memory_order_acquire)) {
       // queue is empty
