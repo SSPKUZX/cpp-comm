@@ -1,23 +1,31 @@
 #include <vector>
 #include <cassert>
-#include "Timer.h"
+#include <thread>
 
-namespace ananas
-{
-namespace internal
+#include "ticked_scheduler.h"
+
+namespace wxg 
 {
 
-unsigned int TimerManager::s_timerIdGen_ = 0;
+unsigned int TickedScheduler::s_timerIdGen_ = 0;
 
-TimerManager::TimerManager()
+TickedScheduler::TickedScheduler(int max_interval) : max_tick_interval_( max_interval){}
+
+void TickedScheduler::operator()()
 {
+	while(is_ticking_){
+		auto interval = std::min<int>( NearestTimer().count(), max_tick_interval_);	
+		if(interval <=0 ){
+			Update();	
+		}else{
+			std::this_thread::sleep_for(DurationMs(interval));	
+		}
+	}
 }
 
-TimerManager::~TimerManager()
-{
-}
+void TickedScheduler::Stop(){ is_ticking_ = false; }
 
-void TimerManager::Update()
+void TickedScheduler::Update()
 {
     if (timers_.empty())
         return;
@@ -47,7 +55,7 @@ void TimerManager::Update()
     } 
 }
 
-bool TimerManager::Cancel(TimerId id)
+bool TickedScheduler::Cancel(TimerId id)
 {
     //time point + uid
     auto begin = timers_.lower_bound(id->first);
@@ -68,7 +76,7 @@ bool TimerManager::Cancel(TimerId id)
     return false;
 }
 
-DurationMs TimerManager::NearestTimer() const
+DurationMs TickedScheduler::NearestTimer() const
 {
     if (timers_.empty())
         return DurationMs::max();
@@ -81,18 +89,18 @@ DurationMs TimerManager::NearestTimer() const
         return std::chrono::duration_cast<DurationMs>(timer.Id()->first - now);
 }
 
-TimerManager::Timer::Timer(const TimePoint& tp) :
-    id_(new std::pair<TimePoint, unsigned int>{tp, ++ TimerManager::s_timerIdGen_}),
+TickedScheduler::Timer::Timer(const TimePoint& tp) :
+    id_(new std::pair<TimePoint, unsigned int>{tp, ++ TickedScheduler::s_timerIdGen_}),
     count_(kForever)
 {
 }
 
-TimerManager::Timer::Timer(Timer&& timer)
+TickedScheduler::Timer::Timer(Timer&& timer)
 {
     this->_Move(std::move(timer));
 }
 
-TimerManager::Timer& TimerManager::Timer::operator= (Timer&& timer)
+TickedScheduler::Timer& TickedScheduler::Timer::operator= (Timer&& timer)
 {
     if (this != &timer)
         this->_Move(std::move(timer));
@@ -100,7 +108,7 @@ TimerManager::Timer& TimerManager::Timer::operator= (Timer&& timer)
     return *this;
 }
 
-void TimerManager::Timer::_Move(Timer&& timer)
+void TickedScheduler::Timer::_Move(Timer&& timer)
 {
     this->id_ = std::move(timer.id_);
     this->func_ = std::move(timer.func_);
@@ -109,7 +117,7 @@ void TimerManager::Timer::_Move(Timer&& timer)
 }
 
 
-void TimerManager::Timer::OnTimer()
+void TickedScheduler::Timer::OnTimer()
 {
     if (!func_ || count_ == 0)
         return;
@@ -125,16 +133,15 @@ void TimerManager::Timer::OnTimer()
     }
 }
 
-TimerId TimerManager::Timer::Id() const
+TimerId TickedScheduler::Timer::Id() const
 {
     return id_;
 }
 
-unsigned int TimerManager::Timer::UniqueId() const
+unsigned int TickedScheduler::Timer::UniqueId() const
 {
     return id_->second;
 }
 
-} // end namespace internal
-} // end namespace ananas
+} // end namespace wxg 
 

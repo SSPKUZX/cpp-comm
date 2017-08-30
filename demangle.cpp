@@ -1,8 +1,10 @@
-#include "Demangle.h"
+#include "demangle.h"
+
 #include <cxxabi.h>
 
 namespace comm
 {
+	template<>
 	std::string demangle( std::type_info const& ti) {
 	  int status;
 	  size_t len = 0;

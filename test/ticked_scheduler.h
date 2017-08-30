@@ -1,6 +1,4 @@
-
-#ifndef BERT_TIMERMANAGER_H
-#define BERT_TIMERMANAGER_H
+#pragma once
 
 #include <map>
 #include <chrono>
@@ -8,7 +6,7 @@
 #include <memory>
 #include <ostream>
 
-namespace ananas
+namespace wxg 
 {
 
 using DurationMs = std::chrono::milliseconds;
@@ -23,20 +21,20 @@ inline std::ostream& operator<< (std::ostream& os, const TimerId& d)
     return os;
 }
 
-namespace internal
-{
-
-class TimerManager final
+/*
+ * warning: this is single-thread implementaion
+ * */
+class TickedScheduler final
 {
 public:
-    TimerManager();
-   ~TimerManager();
+    TickedScheduler(int max_interval);
+   ~TickedScheduler(){};
 
-    TimerManager(const TimerManager& ) = delete;
-    void operator= (const TimerManager& ) = delete;
+    TickedScheduler(const TickedScheduler& ) = delete;
+    void operator= (const TickedScheduler& ) = delete;
 
-    // Tick
-    void Update();
+	void operator()();
+	void Stop();
 
     // Schedule timer at absolute timepoint
     template <int RepeatCount = 1/* -1 is forever */, typename F, typename... Args>
@@ -55,7 +53,7 @@ public:
 private:
     class Timer
     {
-        friend class TimerManager;
+        friend class TickedScheduler;
     public:
         explicit
         Timer(const TimePoint& tp);
@@ -85,9 +83,13 @@ private:
         int count_;
     };
 
-    std::multimap<TimePoint, Timer> timers_;
+    // Tick
+    void Update();
 
-    TimePoint now_;
+    std::multimap<TimePoint, Timer> timers_;
+    TimePoint	now_;
+	const int	max_tick_interval_; 
+	bool		is_ticking_; 
 
     friend class Timer;
     // not thread-safe, but who cares?
@@ -96,7 +98,7 @@ private:
 
 
 template <int RepeatCount, typename F, typename... Args>
-TimerId TimerManager::ScheduleAt(const TimePoint& triggerTime, F&& f, Args&&... args)
+TimerId TickedScheduler::ScheduleAt(const TimePoint& triggerTime, F&& f, Args&&... args)
 {
     static_assert(RepeatCount != 0, "Why you add a timer with zero count?");
 
@@ -114,7 +116,7 @@ TimerId TimerManager::ScheduleAt(const TimePoint& triggerTime, F&& f, Args&&... 
 }
 
 template <int RepeatCount, typename Duration, typename F, typename... Args>
-TimerId TimerManager::ScheduleAfter(const Duration& duration, F&& f, Args&&... args)
+TimerId TickedScheduler::ScheduleAfter(const Duration& duration, F&& f, Args&&... args)
 {
     this->now_ = std::chrono::steady_clock::now();
     return ScheduleAt<RepeatCount>(now_ + duration,
@@ -123,14 +125,13 @@ TimerId TimerManager::ScheduleAfter(const Duration& duration, F&& f, Args&&... a
 }
 
 template <typename F, typename... Args>
-void TimerManager::Timer::SetCallback(F&& f, Args&&... args)
+void TickedScheduler::Timer::SetCallback(F&& f, Args&&... args)
 {
-    auto temp = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
-    func_ = [temp]() { (void)temp(); };
+//	auto temp = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
+//	func_ = [temp]() { (void)temp(); };
+	func_.swap( std::function<void()>(std::forward<F>(f), std::forward<Args>(args)...) );
 }
 
-} // end namespace internal
-} // end namespace ananas
+} // end namespace wxg 
 
-#endif
 
