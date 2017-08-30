@@ -11,14 +11,7 @@
 
 namespace cmn
 {
-
-/*	enum class InitType
-	{
-		defaulted,  // default constructible
-		parametered, // non-default constructible
-	};
-*/
-	template<typename Tp, bool defaulted = true>//InitType it = InitType::defaulted>
+	template<typename Tp, bool defaulted = true>
 	class Singleton : private Noncopyable
 	{
 		public:
@@ -39,10 +32,6 @@ namespace cmn
 				return s_instance;
 			}
 
-			// noncopyable
-//			Singleton<Tp>& operator=( const Singleton<Tp>& ) = delete;
-//			Singleton( const Singleton<Tp>&) = delete;
-
 		protected:
 			// if a class supports singleton, it has to inherit class Singleton
 			Singleton(){};
@@ -50,7 +39,7 @@ namespace cmn
 	};
 
 	template<typename Tp>
-	class Singleton<Tp, false> : public Noncopyable
+	class Singleton<Tp, false> : private Noncopyable
 	{
 		public:
 			template<class... Args>
@@ -71,10 +60,6 @@ namespace cmn
 				}
 				return *s_pInstance;	
 			}
-
-			// noncopyable
-//			Singleton<Tp>& operator=( const Singleton<Tp>& ) = delete;
-//			Singleton( const Singleton<Tp>&) = delete;
 
 		protected:
 			// if a class supports singleton, it has to inherit class Singleton
