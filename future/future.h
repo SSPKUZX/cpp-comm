@@ -2,9 +2,10 @@
 
 #include <future>
 #include <atomic>
+
 #include "helper.h"
 #include "try.h"
-#include "scheduler.h"
+#include "sched/scheduler.h"
 
 namespace utl 
 {
@@ -47,7 +48,28 @@ struct State
     bool IsRoot() const { return !onTimeout_; }
 };
 
-} // end anonymous namespace 
+// specialize for void 
+template<class... Args>
+inline void setState( std::shared_ptr<State<void>> state_sptr, Args&&... args)
+{
+	state_sptr->pm_.set_value();
+	if(state_sptr->then_){
+		state_sptr->then_(Try<void>());
+	}
+}
+
+// specialize for non-void 
+template<class T, class Arg>
+inline auto setState( std::shared_ptr<State<T>> state_sptr, Arg&& arg)
+	->typename std::enable_if<!std::is_void<T>::value>::type
+{
+	state_sptr->pm_.set_value(arg);
+	if(state_sptr->then_){
+		state_sptr->then_(std::forward<Arg>(arg));
+	}
+}
+
+} // end namespace internal
 
 
 template <typename T>
@@ -70,10 +92,12 @@ public:
     Promise(Promise&& pm) = default;
     Promise& operator= (Promise&& pm) = default;
 
-    template <typename SHIT = T>
-    typename std::enable_if<!std::is_void<SHIT>::value, void>::type
-    SetValue(SHIT&& t)
+	// added by ravine
+    template <typename... Params>
+    void SetValue(Params&&... params)
     {
+		static_assert(sizeof...(Params)<=1, "Params in SetValue should be less equal one");
+
         std::unique_lock<std::mutex> guard(state_->thenLock_);
         bool isRoot = state_->IsRoot();
         if (isRoot && state_->progress_ != internal::Progress::None)
@@ -81,105 +105,9 @@ public:
 
         state_->progress_ = internal::Progress::Done;
 
-        state_->pm_.set_value(t);
-        if (state_->then_)
-            state_->then_(std::move(t));
+		internal::setState(state_, std::forward<Params>(params)... );
     }
 
-
-    template <typename SHIT = T>
-    typename std::enable_if<!std::is_void<SHIT>::value, void>::type
-    SetValue(const SHIT& t)
-    {
-        std::unique_lock<std::mutex> guard(state_->thenLock_);
-        bool isRoot = state_->IsRoot();
-        if (isRoot && state_->progress_ != internal::Progress::None)
-            return;
-
-        state_->progress_ = internal::Progress::Done;
-
-        state_->pm_.set_value(t);
-        if (state_->then_)
-            state_->then_(t);
-    }
-
-    template <typename SHIT = T>
-    typename std::enable_if<!std::is_void<SHIT>::value, void>::type
-    SetValue(Try<SHIT>&& t)
-    {
-        std::unique_lock<std::mutex> guard(state_->thenLock_);
-        bool isRoot = state_->IsRoot();
-        if (isRoot && state_->progress_ != internal::Progress::None)
-            return;
-
-        state_->pm_.set_value(t);
-        if (state_->then_)
-            state_->then_(std::move(t));
-    }
-
-    template <typename SHIT = T>
-    typename std::enable_if<!std::is_void<SHIT>::value, void>::type
-    SetValue(const Try<SHIT>& t)
-    {
-        std::unique_lock<std::mutex> guard(state_->thenLock_);
-        bool isRoot = state_->IsRoot();
-        if (isRoot && state_->progress_ != internal::Progress::None)
-            return;
-
-        state_->progress_ = internal::Progress::Done;
-
-        state_->pm_.set_value(t);
-        if (state_->then_)
-            state_->then_(t);
-    }
-
-    template <typename SHIT = T>
-    typename std::enable_if<std::is_void<SHIT>::value, void>::type
-    SetValue(Try<void>&& )
-    {
-        std::unique_lock<std::mutex> guard(state_->thenLock_);
-        bool isRoot = state_->IsRoot();
-        if (isRoot && state_->progress_ != internal::Progress::None)
-            return;
-
-        state_->progress_ = internal::Progress::Done;
-
-        state_->pm_.set_value();
-        if (state_->then_)
-            state_->then_(Try<void>());
-    }
-
-    template <typename SHIT = T>
-    typename std::enable_if<std::is_void<SHIT>::value, void>::type
-    SetValue(const Try<void>& )
-    {
-        std::unique_lock<std::mutex> guard(state_->thenLock_);
-        bool isRoot = state_->IsRoot();
-        if (isRoot && state_->progress_ != internal::Progress::None)
-            return;
-
-        state_->progress_ = internal::Progress::Done;
-
-        state_->pm_.set_value();
-        if (state_->then_)
-            state_->then_(Try<void>());
-    }
-
-    template <typename SHIT = T>
-    typename std::enable_if<std::is_void<SHIT>::value, void>::type
-    SetValue()
-    {
-        std::unique_lock<std::mutex> guard(state_->thenLock_);
-        bool isRoot = state_->IsRoot();
-        if (isRoot && state_->progress_ != internal::Progress::None)
-            return;
-
-        state_->progress_ = internal::Progress::Done;
-
-        state_->pm_.set_value();
-        if (state_->then_)
-            state_->then_(Try<void>());
-    }
 
     Future<T> GetFuture()
     {
@@ -259,12 +187,12 @@ public:
 
     template <typename F,
               typename R = internal::CallableResult<F, T> > 
-    auto Then(F&& f) -> typename R::ReturnFutureType 
+    auto Then(F&& f, Scheduler* sched_ptr = nullptr) -> typename R::ReturnFutureType 
     {
         typedef typename R::Arg Arguments;
-        return _ThenImpl<F, R>(nullptr, std::forward<F>(f), Arguments());  
+        return _ThenImpl<F, R>(sched_ptr, std::forward<F>(f), Arguments());  
     }
-
+/*
     // f will be called in sched
     template <typename F,
               typename R = internal::CallableResult<F, T> > 
@@ -273,12 +201,13 @@ public:
         typedef typename R::Arg Arguments;
         return _ThenImpl<F, R>(sched, std::forward<F>(f), Arguments());  
     }
-
+*/
+private:
     // modified from folly
     //1. F does not return future type
     template <typename F, typename R, typename... Args>
     typename std::enable_if<!R::IsReturnsFuture::value, typename R::ReturnFutureType>::type
-    _ThenImpl(Scheduler* sched, F&& f, internal::ResultOfWrapper<F, Args...> )
+    _ThenImpl(Scheduler* sched, F&& f, std::result_of<F(Args...)> )
     {
         static_assert(std::is_void<T>::value ? sizeof...(Args) == 0 : sizeof...(Args) == 1,
                       "Then callback must take 0/1 argument");
@@ -301,12 +230,20 @@ public:
             Try<T> t(GetValue());
 
             auto func = [res = std::move(t), f = std::move((typename std::decay<F>::type)f), prom = std::move(pm)]() mutable {
-                auto result = WrapWithTry(f, res.template Get<Args>()...);
-                prom.SetValue(std::move(result));
+               auto result = WrapWithTry(f, res.template Get<Args>()...);
+        /*    auto func = [&t, &f, &pm]() mutable {
+				// move below values so that they don't get destructed when executed in Scheduler
+				auto res = std::move(t); 
+				auto functor = std::move((typename std::decay<F>::type)f);
+				auto prom = std::move(pm);
+				auto result = WrapWithTry(functor, res.template Get<Args>()...);
+		*/
+				prom.SetValue(std::move(result));
             };
 
             if (sched)
-                sched->ScheduleOnce(std::move(func));
+                sched->ScheduleOnce(std::move(func)); // this method should be a blocking one, so the refered value may not exist 
+												//when the func gets executed in scheduler
             else
                 func();
         }
@@ -355,7 +292,7 @@ public:
     //2. F return another future type
     template <typename F, typename R, typename... Args>
     typename std::enable_if<R::IsReturnsFuture::value, typename R::ReturnFutureType>::type
-    _ThenImpl(Scheduler* sched, F&& f, internal::ResultOfWrapper<F, Args...>)
+    _ThenImpl(Scheduler* sched, F&& f, std::result_of<F(Args...)> )
     {
         static_assert(sizeof...(Args) <= 1, "Then must take zero/one argument");
 
@@ -431,11 +368,14 @@ public:
         return std::move(nextFuture);
     }
 
+public:
+	//should be package level
     void SetCallback(std::function<void (Try<T>&& )>&& func)
     {
         this->state_->then_ = std::move(func);
     }
 
+	//should be package level
     void SetOnTimeout(std::function<void (internal::TimeoutCallback&& )>&& func)
     {
         this->state_->onTimeout_ = std::move(func);
@@ -637,5 +577,4 @@ Future<
 }
 
 } // end namespace utl 
-
 

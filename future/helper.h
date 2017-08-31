@@ -1,4 +1,6 @@
-#pragma once
+#ifndef BERT_HELPER_H
+#define BERT_HELPER_H
+
 /*
  * This file is modified from facebook folly, with my annotation
  */
@@ -37,15 +39,8 @@ class Try;
 namespace internal
 {
 
-template<typename F, typename... Args>
-using ResultOf = decltype(std::declval<F>()(std::declval<Args>()...));
-
-// I don't know why, but must do it to cater compiler...
-template <typename F, typename... Args>                                   
-struct ResultOfWrapper
-{
-    using Type = ResultOf<F, Args...>;
-};
+template<typename Signature>
+using result_of_t = typename ::std::result_of<Signature>::type;
 
 // Test if F can be called with Args type
 template<typename F, typename... Args>        
@@ -53,7 +48,7 @@ struct CanCallWith
 {
     // SFINAE  Check
     template<typename T,
-        typename Dummy = ResultOf<T, Args...>>
+        typename Dummy = result_of_t<T(Args...)>>
         static constexpr std::true_type
         Check(std::nullptr_t dummy)
         {
@@ -91,14 +86,14 @@ struct CallableResult
     typedef
         typename std::conditional<
                  CanCallWith<F>::value, // if true, F can call with void
-                 ResultOfWrapper<F>,
+                 std::result_of<F()>,
                  typename std::conditional< // NO, F(void) is invalid
                           CanCallWith<F, T&&>::value, // if true, F(T&&) is valid
-                          ResultOfWrapper<F, T&&>, // Yes, F(T&&) is ok
-                          ResultOfWrapper<F, T&> >::type>::type Arg;  // Resort to F(T&)
+                          std::result_of<F(T&&)>, // Yes, F(T&&) is ok
+                          std::result_of<F(T&)> >::type>::type Arg;  // Resort to F(T&)
 
     // If ReturnsFuture::value is true, F returns another future type.
-    typedef IsFuture<typename Arg::Type> IsReturnsFuture; 
+    typedef IsFuture<typename Arg::type> IsReturnsFuture; 
 
     // Future callback's result must be wrapped in another future
     typedef Future<typename IsReturnsFuture::Inner> ReturnFutureType;
@@ -111,10 +106,10 @@ template<typename F>
 struct CallableResult<F, void>
 { 
     // Test F call with arg type: void
-    typedef ResultOfWrapper<F> Arg;
+    typedef std::result_of<F()> Arg;
 
     // If ReturnsFuture::value is true, F returns another future type.
-    typedef IsFuture<typename Arg::Type> IsReturnsFuture; 
+    typedef IsFuture<typename Arg::type> IsReturnsFuture; 
 
     // Future callback's result must be wrapped in another future
     typedef Future<typename IsReturnsFuture::Inner> ReturnFutureType;
@@ -138,7 +133,6 @@ struct CollectAllVariadicContext
     {
         std::get<I>(results) = std::move(t);
         collects.push_back(I);
-		// sizeof(ELEM)...
         if (collects.size() == std::tuple_size<decltype(results)>::value)
             pm.SetValue(std::move(results));
     }
@@ -146,7 +140,7 @@ struct CollectAllVariadicContext
     
     Promise<std::tuple<Try<ELEM>...>> pm;
     std::tuple<Try<ELEM>...> results;
-    std::vector<size_t> collects; // counter would also work
+    std::vector<size_t> collects;
     
     typedef Future<std::tuple<Try<ELEM>...>> FutureType;
 };
@@ -175,4 +169,5 @@ void CollectVariadicHelper(const std::shared_ptr<CTX<Ts...>>& ctx,
 
 } // end namespace ananas
 
+#endif
 

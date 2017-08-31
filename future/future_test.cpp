@@ -4,6 +4,7 @@
 #include <iostream>
 #include <unistd.h>
 
+
 using namespace utl;
 using namespace std;
 
@@ -14,7 +15,7 @@ int main(){
 	auto f0 = MakeReadyFuture(10);	
 	f0.Then( [](int k){
 				cout << "before f1's sleep with k=" << k << '\n';	
-				sleep(3);
+				sleep(1);
 				cout << "after f1's sleep with k=" << k << '\n';	
 			}).Then([](){
 				cout << "before f2's sleep\n";	
@@ -25,6 +26,13 @@ int main(){
 	// considering scheduler
 	
 	// tc 3 : trigger timeout ( need a scheduler)
-
-
+/*
+	auto f= [](int k){
+				cout << "before f1's sleep with k=" << k << '\n';	
+				sleep(1);
+				cout << "after f1's sleep with k=" << k << '\n';	
+		};
+	using Void = result_of_t<decltype(f)(int)>;
+*/
+	return 0;
 }

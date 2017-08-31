@@ -1,4 +1,10 @@
-#pragma once
+#ifndef BERT_TRY_H
+#define BERT_TRY_H
+
+/*
+ * This class is modified from facebook folly
+ * Thanks to it for handling the nasty void thing! 
+ */
 
 /*
  * Copyright 2016 Facebook, Inc.
@@ -43,9 +49,6 @@ public:
     {
     }
 
-	/* *
-	 * support implicit conversion
-	 * */
     Try(T&& t) :
         state_(State::Value),
         value_(std::move(t))
@@ -75,15 +78,15 @@ public:
             return *this;
 
         this->~Try();
-
-		// new (this) Try<T>(std::move(t));
+/*
         state_ = t.state_;
         t.state_ = State::None;
         if (state_ == State::Value)
             new (&value_)T(std::move(t.value_));
         else if (state_ == State::Exception)
             new (&exception_)std::exception_ptr(std::move(t.exception_));
-
+*/
+		new (this)Try(std::move(t));
         return *this;
     } 
 
@@ -103,13 +106,14 @@ public:
             return *this;
 
         this->~Try();
-
-		// new (this) Try<T>(t);
+/*
         state_ = t.state_;
         if (state_ == State::Value)
             new (&value_)T(t.value_);
         else if (state_ == State::Exception)
             new (&exception_)std::exception_ptr(t.exception_);
+*/
+		new (this)Try(t);
 
         return *this;
     }
@@ -214,14 +218,15 @@ public:
             return *this;
 
         this->~Try();
-
+/*
         state_ = t.state_;
         if (state_ == State::Exception)
         {
             new (&exception_)std::exception_ptr(std::move(t.exception_));
             t.state_ = State::Value;
         }
-
+*/
+		new (this)Try(std::move(t));
         return *this;
     }
 
@@ -239,10 +244,12 @@ public:
             return *this;
 
         this->~Try();
-
+/*
         state_ = t.state_;
         if (state_ == State::Exception)
             new (&exception_)std::exception_ptr(t.exception_);
+*/
+		new (this)Try(t);
 
         return *this;
     }
@@ -271,31 +278,29 @@ private:
     std::exception_ptr exception_;
 };
 
+template <typename Signature>
+using result_of_t = typename std::result_of<Signature>::type;
 
 // Wrap function f(...) return by Try<T>
-template <typename F, typename... Args>
-typename std::enable_if<
-    !std::is_same<typename std::result_of<F (Args...)>::type, void>::value,
-    Try<typename std::result_of<F (Args...)>::type >> ::type
+template <typename F, typename... Args, typename R= result_of_t<F(Args...)> >
+typename std::enable_if<!std::is_same<R, void>::value,Try<R > > ::type
     WrapWithTry(F&& f, Args&&... args)
 {
-    using Type = typename std::result_of<F(Args...)>::type;
+   // typename std::result_of<F(Args...)>::type;
 
     try
     {
-        return Try<Type>(std::forward<F>(f)(std::forward<Args>(args)...));
+        return Try<R>(std::forward<F>(f)(std::forward<Args>(args)...));
     }
     catch (std::exception& e) 
     {
-        return Try<Type>(std::current_exception());
+        return Try<R>(std::current_exception());
     }
 }
 
 // Wrap void function f(...) return by Try<void>
-template <typename F, typename... Args>
-typename std::enable_if <
-    std::is_same<typename std::result_of<F (Args...)>::type, void>::value,
-    Try<void>> ::type
+template <typename F, typename... Args, typename R=result_of_t<F(Args...)>>
+typename std::enable_if<std::is_same<R, void>::value,Try<void>> ::type
     WrapWithTry(F&& f, Args&&... args)
 {
     try
@@ -309,6 +314,7 @@ typename std::enable_if <
     }
 }
 
-} // end namespace utl 
+} // end namespace ananas
 
+#endif
 
