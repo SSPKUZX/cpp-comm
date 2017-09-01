@@ -8,10 +8,10 @@ using namespace utl;
 class NetServer final : public AsyncOffice{
 	public:
 		NetServer(){
-			bind<FutureMessage>([this](FutureMessage const& msg){
-				std::cout << "before FutureMessage gets processed\n";
+			bind<FunctionMessage>([this](FunctionMessage const& msg){
+				std::cout << "before FunctionMessage gets processed\n";
 				msg();
-				std::cout << "after FutureMessage gets processed\n";
+				std::cout << "after FunctionMessage gets processed\n";
 				this->m_poster.emplace<CmfStop>();
 			});	
 		}
@@ -30,10 +30,9 @@ class System final : public HeadOffice{
 	private:
 		void displayFuture(int const&){
 			auto fut = MakeReadyFuture(3);		
-			fut.Then([](int const& three){ 
-				std::cout << "future gets integrated into cmf with message=" << three << '\n'; },
-				&m_future_scheduler
-			);
+			fut.Then(&m_future_scheduler, [](int const& three){ 
+				std::cout << "future gets integrated into cmf with message=" << three << '\n'; 
+			});
 		}
 
 	private:

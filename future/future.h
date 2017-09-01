@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <future>
@@ -28,12 +29,7 @@ struct State
     static_assert(std::is_same<T, void>::value || std::is_copy_constructible<T>(), "must be copyable or void");
     static_assert(std::is_same<T, void>::value || std::is_move_constructible<T>(), "must be movable or void");
 
-    State() :
-        ft_(pm_.get_future()),
-        progress_(Progress::None),
-        retrieved_ {false}
-    {
-    }
+    State() : ft_(pm_.get_future()), progress_(Progress::None), retrieved_(false){}
 
     std::promise<T> pm_;
     std::future<T> ft_;
@@ -84,11 +80,9 @@ public:
     {
     }
 
-    // TODO: C++11 lambda doesn't support move capture
-    // just for compile, copy Promise is undefined, do NOT do that!
-    Promise(const Promise&) = default;
-    Promise& operator= (const Promise&) = default;
-
+    Promise(const Promise&) = delete;
+    Promise& operator= (const Promise&) = delete;
+	// only move is supported
     Promise(Promise&& pm) = default;
     Promise& operator= (Promise&& pm) = default;
 
@@ -187,21 +181,22 @@ public:
 
     template <typename F,
               typename R = internal::CallableResult<F, T> > 
-    auto Then(F&& f, Scheduler* sched_ptr = nullptr) -> typename R::ReturnFutureType 
+    auto Then(F&& f) -> typename R::ReturnFutureType 
+    {
+        typedef typename R::Arg Arguments;
+        return _ThenImpl<F, R>(nullptr, std::forward<F>(f), Arguments());  
+    }
+
+    // f will be called in sched
+    template <typename F,
+              typename R = internal::CallableResult<F, T> > 
+    auto Then(Scheduler* sched_ptr, F&& f) 
+		-> typename R::ReturnFutureType 
     {
         typedef typename R::Arg Arguments;
         return _ThenImpl<F, R>(sched_ptr, std::forward<F>(f), Arguments());  
     }
-/*
-    // f will be called in sched
-    template <typename F,
-              typename R = internal::CallableResult<F, T> > 
-    auto Then(Scheduler* sched, F&& f) -> typename R::ReturnFutureType 
-    {
-        typedef typename R::Arg Arguments;
-        return _ThenImpl<F, R>(sched, std::forward<F>(f), Arguments());  
-    }
-*/
+
 private:
     // modified from folly
     //1. F does not return future type
@@ -214,8 +209,10 @@ private:
 
         using FReturnType = typename R::IsReturnsFuture::Inner;
 
-        Promise<FReturnType> pm;
-        auto nextFuture = pm.GetFuture();
+        auto pm_sptr = std::make_shared<Promise<FReturnType>>(); //Promise<FReturnType> pm;
+        auto nextFuture = pm_sptr->GetFuture();
+		// added
+		auto decay_f	= static_cast<typename std::decay<F>::type>(f);
 
         std::unique_lock<std::mutex> guard(state_->thenLock_);
         if (state_->progress_ == internal::Progress::Timeout)
@@ -227,19 +224,15 @@ private:
         {
             guard.unlock();
 
-            Try<T> t(GetValue());
-
-            auto func = [res = std::move(t), f = std::move((typename std::decay<F>::type)f), prom = std::move(pm)]() mutable {
-               auto result = WrapWithTry(f, res.template Get<Args>()...);
-        /*    auto func = [&t, &f, &pm]() mutable {
-				// move below values so that they don't get destructed when executed in Scheduler
-				auto res = std::move(t); 
-				auto functor = std::move((typename std::decay<F>::type)f);
-				auto prom = std::move(pm);
-				auto result = WrapWithTry(functor, res.template Get<Args>()...);
-		*/
-				prom.SetValue(std::move(result));
-            };
+            auto value_sptr	= std::make_shared<Try<T>>(GetValue()); //Try<T> t(GetValue());
+            auto func	= [value_sptr, decay_f, pm_sptr]() mutable {
+				auto result = WrapWithTry(decay_f, value_sptr->template Get<Args>()...);
+		 		pm_sptr->SetValue(std::move(result));
+			};
+         //   auto func = [res = std::move(t), f = std::move((typename std::decay<F>::type)f), prom = std::move(pm)]() mutable {
+         //     auto result = WrapWithTry(f, res.template Get<Args>()...);
+		 //		prom.SetValue(std::move(result));
+         //   };
 
             if (sched)
                 sched->ScheduleOnce(std::move(func)); // this method should be a blocking one, so the refered value may not exist 
@@ -250,7 +243,8 @@ private:
         else
         {
             // 1. set pm's timeout callback
-            nextFuture.SetOnTimeout([weak_parent = std::weak_ptr<internal::State<T>>(this->state_)](internal::TimeoutCallback&& cb) {
+			auto weak_parent = std::weak_ptr<internal::State<T>>(this->state_);
+            nextFuture.SetOnTimeout( [weak_parent](internal::TimeoutCallback&& cb) {
                     auto parent = weak_parent.lock();
                     if (!parent)
                         return;
@@ -270,13 +264,16 @@ private:
                 });
 
             // 2. set this future's then callback
-            SetCallback([sched, func = std::move((typename std::decay<F>::type)f), prom = std::move(pm)](Try<T>&& t) mutable {
+          //  SetCallback([sched, func = std::move((typename std::decay<F>::type)f), prom = std::move(pm)](Try<T>&& t) mutable {
+            SetCallback([sched, decay_f, pm_sptr](Try<T>&& t) mutable {
 
-                auto cb = [func = std::move(func), t = std::move(t), prom = std::move(prom)]() mutable {
+				auto t_sptr = std::make_shared<Try<T>>(std::move(t));
+              //  auto cb = [func = std::move(func), t = std::move(t), prom = std::move(prom)]() mutable {
+                auto cb = [decay_f, t_sptr, pm_sptr]() mutable {
                     // run callback, T can be void, thanks to folly Try<>
-                    auto result = WrapWithTry(func, t.template Get<Args>()...);
+                    auto result = WrapWithTry(decay_f, t_sptr->template Get<Args>()...);
                     // set next future's result
-                    prom.SetValue(std::move(result));
+                    pm_sptr->SetValue(std::move(result));
                 };
 
                 if (sched)
@@ -288,7 +285,7 @@ private:
 
         return std::move(nextFuture);
     }
-
+/*
     //2. F return another future type
     template <typename F, typename R, typename... Args>
     typename std::enable_if<R::IsReturnsFuture::value, typename R::ReturnFutureType>::type
@@ -367,7 +364,7 @@ private:
 
         return std::move(nextFuture);
     }
-
+*/
 public:
 	//should be package level
     void SetCallback(std::function<void (Try<T>&& )>&& func)
@@ -393,11 +390,13 @@ public:
      * or zz will be called, but they can't happened both or neither. So we pass the cb
      * to the root future, if we find out that root future is indeed timeout, we call cb there.
      */
-    void OnTimeout(std::chrono::milliseconds duration,
+    void OnTimeout(std::chrono::milliseconds const& duration,
                    internal::TimeoutCallback f,
                    Scheduler* scheduler)
     {
-        scheduler->ScheduleOnceAfter(duration, [state = this->state_, cb = std::move(f)]() mutable {
+      //  scheduler->ScheduleOnceAfter(duration, [state = this->state_, cb = std::move(f)]() mutable {
+		auto state = state_;
+        scheduler->ScheduleOnceAfter(duration, [state, f]() mutable {
                 {
                     std::unique_lock<std::mutex> guard(state->thenLock_);
 
@@ -408,9 +407,9 @@ public:
                 }
 
                 if (!state->IsRoot())
-                    state->onTimeout_(std::move(cb)); // propogate to the root future
+                    state->onTimeout_(std::move(f)); // propogate to the root future
                 else
-                    cb();
+                    f();
         });
     }
 
