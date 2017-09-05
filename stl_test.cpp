@@ -1,11 +1,13 @@
 #include<unordered_map>
 #include<map>
 #include<vector>
+#include<list>
 #include<deque>
 #include<set>
 #include<unordered_set>
 #include<iostream>
-#include"stl_util.h"
+
+#include"stl.h"
 
 int main(int argc, char* argv[])
 {
@@ -63,5 +65,22 @@ int main(int argc, char* argv[])
 	}
 	else
 		std::cout << "not find 3\n\n";
+
+
+	// test $transform
+	std::vector<int> s1{3,4,5};
+	for(auto& i : transform(s1,[](int s){ return s+1;})){
+		std::cout << "\t" << i;	
+	}
+	std::cout << '\n';
+
+	std::vector<int> s2{3,4,5};
+	auto lst2 = transform<std::list>(s2,[](int s){ return s+1;});
+	for(auto& i : lst2){
+		std::cout << "\t" << i;	
+	}
+	std::cout << '\n';
+	std::cout << typeid(lst2).name() << '\n';
+
 	return 0;
 }

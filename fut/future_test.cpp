@@ -21,6 +21,13 @@ int main(){
 				cout << "before f2's sleep\n";	
 				sleep(2);
 				cout << "after f2's sleep\n";	
+				return MakeReadyFuture(std::string("yes, string in future")).Then(
+					[](std::string const& msg){
+						cout << "see what's coming->" << msg << '\n';	
+						return std::string("non-ready-future");
+					});//std::string("yes,string in non-future");/* */
+			}).Then([](std::string const& msg){
+				cout << "see what's coming->" << msg << '\n';	
 			});
 
 	// considering scheduler

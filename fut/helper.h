@@ -115,56 +115,6 @@ struct CallableResult<F, void>
     typedef Future<typename IsReturnsFuture::Inner> ReturnFutureType;
 };
 
-// For when_all
-//
-template <typename... ELEM> 
-struct CollectAllVariadicContext
-{
-    CollectAllVariadicContext() {}
-   
-    // Differ from folly: Do nothing here
-    ~CollectAllVariadicContext() { }
-
-    CollectAllVariadicContext(const CollectAllVariadicContext& ) = delete;
-    void operator= (const CollectAllVariadicContext& ) = delete;
-    
-    template <typename T, size_t I>
-    inline void SetPartialResult(Try<T>& t)
-    {
-        std::get<I>(results) = std::move(t);
-        collects.push_back(I);
-        if (collects.size() == std::tuple_size<decltype(results)>::value)
-            pm.SetValue(std::move(results));
-    }
-        
-    
-    Promise<std::tuple<Try<ELEM>...>> pm;
-    std::tuple<Try<ELEM>...> results;
-    std::vector<size_t> collects;
-    
-    typedef Future<std::tuple<Try<ELEM>...>> FutureType;
-};
-
-// base template
-template <template <typename...> class CTX, typename... Ts>
-void CollectVariadicHelper(const std::shared_ptr<CTX<Ts...>>& )
-{
-}
-      
-template <template <typename ...> class CTX, typename... Ts,
-         typename THead, typename... TTail> 
-void CollectVariadicHelper(const std::shared_ptr<CTX<Ts...>>& ctx, 
-     THead&& head, TTail&&... tail)
-{
-    head.SetCallback([ctx](Try<typename THead::InnerType>&& t) { 
-         ctx->template SetPartialResult<typename THead::InnerType, 
-         sizeof...(Ts) - sizeof...(TTail) - 1>(t); 
-         }); 
-
-    CollectVariadicHelper(ctx, std::forward<TTail>(tail)...); 
-}
-
-
 } // end namespace internal
 
 } // end namespace ananas

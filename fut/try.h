@@ -78,14 +78,6 @@ public:
             return *this;
 
         this->~Try();
-/*
-        state_ = t.state_;
-        t.state_ = State::None;
-        if (state_ == State::Value)
-            new (&value_)T(std::move(t.value_));
-        else if (state_ == State::Exception)
-            new (&exception_)std::exception_ptr(std::move(t.exception_));
-*/
 		new (this)Try(std::move(t));
         return *this;
     } 
@@ -106,13 +98,6 @@ public:
             return *this;
 
         this->~Try();
-/*
-        state_ = t.state_;
-        if (state_ == State::Value)
-            new (&value_)T(t.value_);
-        else if (state_ == State::Exception)
-            new (&exception_)std::exception_ptr(t.exception_);
-*/
 		new (this)Try(t);
 
         return *this;
@@ -218,14 +203,6 @@ public:
             return *this;
 
         this->~Try();
-/*
-        state_ = t.state_;
-        if (state_ == State::Exception)
-        {
-            new (&exception_)std::exception_ptr(std::move(t.exception_));
-            t.state_ = State::Value;
-        }
-*/
 		new (this)Try(std::move(t));
         return *this;
     }
@@ -244,11 +221,6 @@ public:
             return *this;
 
         this->~Try();
-/*
-        state_ = t.state_;
-        if (state_ == State::Exception)
-            new (&exception_)std::exception_ptr(t.exception_);
-*/
 		new (this)Try(t);
 
         return *this;
@@ -283,7 +255,7 @@ using result_of_t = typename std::result_of<Signature>::type;
 
 // Wrap function f(...) return by Try<T>
 template <typename F, typename... Args, typename R= result_of_t<F(Args...)> >
-typename std::enable_if<!std::is_same<R, void>::value,Try<R > > ::type
+typename std::enable_if<!std::is_void<R>::value,Try<R > > ::type
     WrapWithTry(F&& f, Args&&... args)
 {
    // typename std::result_of<F(Args...)>::type;
@@ -300,7 +272,7 @@ typename std::enable_if<!std::is_same<R, void>::value,Try<R > > ::type
 
 // Wrap void function f(...) return by Try<void>
 template <typename F, typename... Args, typename R=result_of_t<F(Args...)>>
-typename std::enable_if<std::is_same<R, void>::value,Try<void>> ::type
+typename std::enable_if<std::is_void<R>::value,Try<void>> ::type
     WrapWithTry(F&& f, Args&&... args)
 {
     try
