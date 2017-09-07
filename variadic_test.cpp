@@ -4,7 +4,7 @@
 
 int main()
 {
-	using namespace comm;
+	using namespace utl;
 	using namespace std;
 
 	// index_of

@@ -1,39 +1,41 @@
 #include "retry.h"
+
 #include <iostream>
-#include <thread>
-#include <chrono>
+#include <cassert>
 
-class randomed
+using namespace utl;
+
+static int x=0;
+bool is_not_three(){  return ++x!=3; }
+
+int main()
 {
-	public:
-		int operator() () const
-		{
-			std::cout << "trying once\n";
-			return 999;
-		}
-};
+	auto is_valid = [](uint32_t ret){return ret > 2;};
+	uint32_t init = 0;
+	auto work	= [&init]{ return ++init; };
+	auto ret	= retry( work, is_valid, 2); 
+	assert( ret == 2);
+	std::cout << ret << '\n';
 
-template< class FuncType>
-int pick( const FuncType& f )
-{
-	return f();
-}
+	init	= 0;
+	ret		= retry( work, is_valid); 
+	assert( ret == 3);
+	std::cout << ret << '\n';
 
+	auto is_true = retry([&init]{ return --init==0;}, 2);	
+	std::cout << std::boolalpha << is_true << '\n';
 
-int main( int argc, char* argv[])
-{
-	using namespace comm;
-	auto pred = [](int const port)
-		{ 
-			return 1==port ? true : (std::this_thread::sleep_for( std::chrono::milliseconds(1000) ), false); 
-		};
-	std::cout << "result=\n" << retry( make_times(2, pred),
-									   retry, make_times(2, pred), 
-									   retry, make_times(2, pred), 
-									   retry, make_times(2, pred), 
-									   retry, make_times(2, pred), 
-									   retry, make_times(2, pred), 
-									   pick<randomed>, randomed() ) << std::endl;
+	is_true = retry([&init]{ return ++init==3;});	
+	std::cout << std::boolalpha << is_true << '\n';
+
+	is_true = retry( fnot(is_not_three) );	
+	std::cout << std::boolalpha << is_true <<"\tx=" << x << '\n';
+
+	is_true = retry( [](){ return !is_not_three(); } );	
+	std::cout << std::boolalpha << is_true <<"\tx=" << x << '\n';
+
+	if(not false){ std::cout << "<not false> is syntactically right\n";}
+	if( true not_eq false ){ std::cout << "<true not_eq false> is syntactically right\n";}
+
 	return 0;
-}	
-
+}

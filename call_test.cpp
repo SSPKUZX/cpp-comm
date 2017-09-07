@@ -35,7 +35,7 @@ template<>
 void sum<type>( type const& args, int& result)
 {
 	SumInvoker caller;
-	comm::call_each( caller, args.a, args.b);
+	utl::call_each( caller, args.a, args.b);
 	result = caller.get();
 }
 
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 	const std::string& key3 = key2;
 	std::string& key4 = key1;
 	std::string word = "hello, call_once_per_key";
-	using namespace comm;
+	using namespace utl;
 	// below eight examples are the same
 	// which means const|reference|value KeyType are the same
 	// but in order to guarantee to call the same 'call_once_pey_key'

@@ -5,6 +5,11 @@
 
 namespace utl{
 	
+	/*
+	 * for future scheduling, future and timeout should be scheduled in different threads, or timeout
+	 * will only be executed after the to-timeout future gets completely executed, then timeout cb will
+	 * not be executed b' the future's state is done at that moment.
+	 * */
 	class FutureScheduler final : public Scheduler{ 
 		public:		
 			FutureScheduler(cmf::Poster poster = cmf::Poster()) : Scheduler(), m_poster(poster){}
@@ -25,13 +30,7 @@ namespace utl{
 					functor();	
 				}
 			}
-/*
-		protected:	
-			template<class Tp, class... Args>
-			inline Future<T> makeReadyFuture( Args&&... args){
-				return MakeReadyFuture<Tp>(this, std::forward<Args>(args)... );	
-			}
-*/
+
 		private:
 			cmf::Poster	m_poster;	
 	};

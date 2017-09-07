@@ -294,6 +294,9 @@ public:
      * can happened almost in the same time, we should ensure that both xx and yy will be called
      * or zz will be called, but they can't happened both or neither. So we pass the cb
      * to the root future, if we find out that root future is indeed timeout, we call cb there.
+	 *
+	 * ### timeout should be scheduled in different thread compared to future, or timeout will not
+	 * ### not work 
      */
     void OnTimeout(std::chrono::milliseconds const& duration,
                    internal::TimeoutCallback f,
@@ -306,7 +309,9 @@ public:
                     std::unique_lock<std::mutex> guard(state->thenLock_);
 
                     if (state->progress_ != internal::Progress::None)
+					{
                         return;
+					}
 
                     state->progress_ = internal::Progress::Timeout;
                 }

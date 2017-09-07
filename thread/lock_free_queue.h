@@ -7,7 +7,7 @@
  
 #include <list>
 
-namespace comm
+namespace utl 
 {
 	template <typename T>
 	class LockFreeQueue
@@ -19,6 +19,9 @@ namespace comm
 				iHead = list.begin();
 				iTail = list.end();
 			};
+
+			LockFreeQueue( LockFreeQueue const&) = delete;
+			LockFreeQueue& operator=( LockFreeQueue const&) = delete;
 		
 		 	void Produce(const T& t) //存消息
 			{

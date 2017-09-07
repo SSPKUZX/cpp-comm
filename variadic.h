@@ -3,7 +3,7 @@
 #include <utility>
 #include <cstdint>
 
-namespace comm
+namespace utl 
 {
 	namespace detail
 	{
@@ -103,24 +103,6 @@ namespace comm
 	struct has_duplicate<T, Args...> 
 	{
 		static constexpr bool value = one_of<T,Args...>::value || has_duplicate<Args...>::value;
-	};
-
-
-	/* *
-	 * *****nth_type*******
-	 * */
-
-	template<int32_t N, class Tp, class... Types>
-	struct nth_type
-	{
-		static_assert( N>0, "N must be positive in nth_type");
-		using type = typename nth_type<N-1, Types...>::type;		
-	};
-
-	template<class Tp, class... Types>
-	struct nth_type<1, Tp, Types...>
-	{
-		using type = Tp;		
 	};
 
 } // end of comm

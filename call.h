@@ -1,10 +1,10 @@
 #pragma once
 
-#include "traits_ext.h" 
+#include "traits.h" 
 #include <stdint.h>
 #include <memory>
 
-namespace comm
+namespace utl 
 {
 	// for each key, the callable will be called only once even invoked multiple times
 	template< class KeyType, class Callable, class... Args>
@@ -33,13 +33,13 @@ namespace comm
 	// return void, until predicate() evaluates to true 
 	template< class Predicate, class Callable, class... Args>
 	auto call_until( Predicate&& predicate, Callable&& caller, Args&&... args)
-		->typename std::enable_if< is_functional<Predicate,bool(void)>::value, void>::type;
+		->typename std::enable_if< is_signature<Predicate,bool()>::value, void>::type;
 
 	// return void, until predicate(R) evaluates to true when callable returns R
 	template< class Predicate, class Callable, class... Args>
 	auto call_until( Predicate&& predicate, Callable&& caller, Args&&... args)
 		->typename std::enable_if< !std::is_same<void, typename std::result_of<Callable(Args...)>::type>::value 
-		&& is_functional<Predicate, bool(typename std::result_of<Callable(Args...)>::type)>::value, 
+		&& is_signature<Predicate, bool(typename std::result_of<Callable(Args...)>::type)>::value, 
 		typename std::result_of<Callable(Args...)>::type>::type;
 
 	// call multiple times
@@ -52,7 +52,7 @@ namespace comm
 	// otherwise, call_each returns void type
 	template< class _Callable, class... _Args>
 	auto call_each( _Callable&& callable, _Args&&... args)
-		->typename std::conditional< std::is_same<bool,typename std::result_of< _Callable(typename get_type<0, _Args...>::type )>::type>::value, bool, void>::type;
+		->typename std::conditional< std::is_same<bool,typename std::result_of< _Callable(typename nth_type<0, _Args...>::type )>::type>::value, bool, void>::type;
 
 }
 
