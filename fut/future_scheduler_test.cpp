@@ -1,6 +1,6 @@
 #include "future_scheduler.h"
 #include "cmf/cmf.h"
-#include "fut/future.h"
+#include "future.h"
 
 #include <iostream>
 
