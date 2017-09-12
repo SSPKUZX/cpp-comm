@@ -2,7 +2,7 @@
 
 #include <cxxabi.h>
 
-namespace comm
+namespace utl 
 {
 	template<>
 	std::string demangle( std::type_info const& ti) {

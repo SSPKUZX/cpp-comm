@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <map>
 
-namespace cmn 
+namespace utl 
 {
 	struct Succ{};
 	struct Fail{};
@@ -15,7 +15,7 @@ namespace cmn
 
 int main()
 {
-	using namespace cmn;
+	using namespace utl;
 	using namespace std;
 
 	auto state = State::Of<Fail>();	

@@ -5,7 +5,8 @@ the following works:
 	1) test whenx && timeout	
 		1.1) timeout and future should be executed in different threads, or
 		timeout will not work;
-		1.2) whenx 
+		1.2) whenx --->ING
+
 	2) refactor future.h --> DONE	
 		
 

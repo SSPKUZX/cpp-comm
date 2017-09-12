@@ -63,46 +63,5 @@ namespace utl
 
 	} // end of detail
 
-	/* *
-	 * *****index_of*******
-	 * */
 
-	template<class T,class... Args>
-	struct index_of{};
-
-	template<class T>
-	struct index_of<T>
-	{
-		static constexpr int8_t	value = -1; 	
-	};
-
-	template<class T, class U, class... Args>
-	struct index_of<T, U, Args...>
-	{
-		static constexpr int8_t value = std::is_same<T,U>::value ?
-			0 : (-1 != index_of<T,Args...>::value) ? 
-			(1 + index_of<T,Args...>::value) : -1;
-	};
-
-	template<class T, class... Args>
-	struct one_of
-	{
-		static constexpr bool value = -1!=index_of<T,Args...>::value;
-	};
-
-	template<class... Args>
-	struct has_duplicate{};
-
-	template<>
-	struct has_duplicate<>
-	{
-		static constexpr bool value = false; 
-	};
-
-	template<class T, class... Args>
-	struct has_duplicate<T, Args...> 
-	{
-		static constexpr bool value = one_of<T,Args...>::value || has_duplicate<Args...>::value;
-	};
-
-} // end of comm
+} // end of utl 

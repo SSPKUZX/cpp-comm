@@ -28,7 +28,7 @@ int main()
 	is_true = retry([&init]{ return ++init==3;});	
 	std::cout << std::boolalpha << is_true << '\n';
 
-	is_true = retry( fnot(is_not_three) );	
+	is_true = retry( not0(is_not_three) );	
 	std::cout << std::boolalpha << is_true <<"\tx=" << x << '\n';
 
 	is_true = retry( [](){ return !is_not_three(); } );	

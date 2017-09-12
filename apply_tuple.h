@@ -31,7 +31,7 @@
 #include <tuple>
 #include <utility>
 
-namespace folly {
+namespace utl{
 
 //////////////////////////////////////////////////////////////////////
 
@@ -105,7 +105,7 @@ inline constexpr auto forwardTuple(Tuple&& t, IndexSequence<Indexes...>)
  */
 
 template <class F, class... Tuples>
-inline constexpr auto applyTuple(F&& f, Tuples&&... t)
+inline constexpr auto ApplyTuple(F&& f, Tuples&&... t)
     -> decltype(detail::apply_tuple::call(
         detail::apply_tuple::makeCallable(std::forward<F>(f)),
         std::tuple_cat(detail::apply_tuple::forwardTuple(

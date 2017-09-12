@@ -2,16 +2,16 @@
 
 #include <algorithm>
 
-namespace comm
+namespace utl 
 {
 	namespace detail
 	{
 		template<class iterator>
 		class find_result;
 	}
-	template<class _Container, class _Equaler>
-	auto find( _Container const& container, _Equaler const& equaler)
-		->detail::find_result< typename _Container::const_iterator >;
+	template<class Container, class Equaler>
+	auto find( Container const& container, Equaler const& equaler)
+		->detail::find_result< typename Container::const_iterator >;
 
 
 	template<template<class DT, class DAlloc = std::allocator<DT>> class DestContainer, 

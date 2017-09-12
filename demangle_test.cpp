@@ -9,7 +9,7 @@ namespace mrv2
 
 int main()
 {
-	using namespace comm;
+	using namespace utl;
 	std::cout << "demangled int is=" << demangle( typeid(int) ) << "\n";
 	std::cout << "demangled fuc is=" << demangle( typeid(f) ) << "\n";
 	std::cout << "demangled fuc is=" << demangle( typeid(mrv2::Hello) ) << "\n";

@@ -18,7 +18,7 @@
 
 #include <string>
 
-namespace comm{
+namespace utl{
 
 /**
  * Return the demangled (prettyfied) version of a C++ type.

@@ -18,7 +18,7 @@
 
 #include <memory>
 
-namespace folly {
+namespace utl{
 
 /** C++11 closures don't support move-in capture. Nor does std::bind.
     facepalm.

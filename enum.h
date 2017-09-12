@@ -2,19 +2,19 @@
 #include "make_unique.h"
 #include "demangle.h"
 
-namespace cmn
+namespace utl 
 {
 	template<class... Labels>
 	class Enum
 	{
-		static_assert( !::comm::has_duplicate<Labels...>::value, "no duplicate label classes allowed in Enum's template class arguments");
+		static_assert( !has_duplicate<Labels...>::value, "no duplicate label classes allowed in Enum's template class arguments");
 		public:	
 			// similar to equal
 			template<class T>
 			bool Is() const
 			{ 
-				static_assert(::comm::one_of<T,Labels...>::value,"T must be one of Labels");
-				return m_index==comm::index_of<T, Labels...>::value; 
+				static_assert(::utl::one_of<T,Labels...>::value,"T must be one of Labels");
+				return m_index==utl::index_of<T, Labels...>::value; 
 			}
 		
 			// tostring
@@ -30,8 +30,8 @@ namespace cmn
 			template<class T>
 			static Enum Of()
 			{ 
-				static_assert(::comm::one_of<T,Labels...>::value,"T must be one of Labels");
-				return Enum(comm::index_of<T, Labels...>::value);
+				static_assert(::utl::one_of<T,Labels...>::value,"T must be one of Labels");
+				return Enum(utl::index_of<T, Labels...>::value);
 			}
 
 			template<class... _Labels>
@@ -53,14 +53,14 @@ namespace cmn
 				{
 					void operator()( std::unique_ptr<std::string[]>& names, uint8_t& index)	
 					{
-						names[index++] = comm::demangle(typeid(T));	
+						names[index++] = utl::demangle(typeid(T));	
 					}
 				};
 				
 				MetaHolder() : s_label_names(::cmn::make_unique<std::string[]>(sizeof...(Labels)))
 				{
 					uint8_t index = 0;
-					comm::detail::variadic_np<EnumHook, Labels...>()( s_label_names, index);
+					utl::detail::variadic_np<EnumHook, Labels...>()( s_label_names, index);
 				}
 			} meta;
 	};

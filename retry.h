@@ -43,16 +43,16 @@ namespace utl
 
 	// assistant for retry(invoker, times) when '!invoker()' is needed   
 	template<class Predicate>
-	struct fnot_wrapper{
-		fnot_wrapper( Predicate predicate) : m_pred(predicate){}		
+	struct not0_wrapper{
+		not0_wrapper( Predicate predicate) : m_pred(predicate){}		
 		bool operator()(){ return !m_pred(); }
 
 		Predicate m_pred;
 	};
 
 	template<class Predicate>
-	inline fnot_wrapper<Predicate> fnot( Predicate&& pred){
-		return fnot_wrapper<Predicate>(std::forward<Predicate>(pred) );			
+	inline not0_wrapper<Predicate> not0( Predicate&& pred){
+		return not0_wrapper<Predicate>(std::forward<Predicate>(pred) );			
 	}
 
 }

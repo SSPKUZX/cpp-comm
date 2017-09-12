@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <tuple>
 #include <functional>
 
 namespace utl 
@@ -35,7 +36,6 @@ namespace utl
 			template<class F2>
 			static constexpr std::false_type check(...);
 		public:
-//			enum { value = is_invokable<F(Args...)>::value && std::is_same<R, typename std::result_of<F(Args...)>::type>::value };
 			enum { value = decltype(check<F>(0))::value };
 	};
 
@@ -43,6 +43,46 @@ namespace utl
 	struct nth_type{
 		using type = typename std::tuple_element<I, std::tuple<Args...>>::type;	
 	};
+
+	
+	template<class T,class... Args>
+	struct index_of{};
+
+	template<class T>
+	struct index_of<T>
+	{
+		static constexpr int8_t	value = -1; 	
+	};
+
+	template<class T, class U, class... Args>
+	struct index_of<T, U, Args...>
+	{
+		static constexpr int8_t value = std::is_same<T,U>::value ?
+			0 : (-1 != index_of<T,Args...>::value) ? 
+			(1 + index_of<T,Args...>::value) : -1;
+	};
+
+	template<class T, class... Args>
+	struct one_of
+	{
+		static constexpr bool value = -1!=index_of<T,Args...>::value;
+	};
+
+	template<class... Args>
+	struct has_duplicate{};
+
+	template<>
+	struct has_duplicate<>
+	{
+		static constexpr bool value = false; 
+	};
+
+	template<class T, class... Args>
+	struct has_duplicate<T, Args...> 
+	{
+		static constexpr bool value = one_of<T,Args...>::value || has_duplicate<Args...>::value;
+	};
+
 
 	// false by default
 	template<class Signature, class Enable=void>
@@ -53,9 +93,10 @@ namespace utl
 	struct function_traits<RetType(Args...) > : public std::true_type{
 		static const size_t arity = sizeof...(Args);
 		using return_type = RetType;	
+		using args_tuple_type = std::tuple<typename std::decay<Args>::type...>;
 		template<size_t I>
 		struct args{
-			using type = typename std::tuple_element<I, std::tuple<Args...>>::type;	
+			using type = typename nth_type<I, Args...>::type;	
 		};	
 	};
 
@@ -76,6 +117,8 @@ namespace utl
 	struct function_traits<RetType(ClassType::*)(Args...) >{
 		static const size_t arity = 1+sizeof...(Args);
 		using return_type = RetType;	
+		using args_tuple_type = std::tuple<ClassType*,typename std::decay<Args>::type...>;
+		using args_tuple_type_ = std::tuple<typename std::decay<Args>::type...>; // helper for function class 
 		template<size_t I>
 		struct args{
 			static_assert(I>0, "I in args should be greater than 0 when Signature is member function");
@@ -103,6 +146,7 @@ namespace utl
 		using ft= function_traits<decltype(&Signature::operator())>;
 		static const size_t arity = ft::arity-1;
 		using return_type = typename ft::return_type;	
+		using args_tuple_type = typename ft::args_tuple_type_;
 		template<size_t I>
 		struct args{
 			using type = typename ft::template args<I+1>::type;	
@@ -149,6 +193,7 @@ namespace utl
 	struct function_traits<std::__1::__bind<Signature, Args...> > : public std::true_type{
 		static const size_t arity = placeholder_count<Args...>::value;
 		using return_type	= typename function_traits<Signature>::return_type;
+		// no args_tuple_type set
 		template<size_t I>
 		struct args{
 			static_assert(placeholder_index<I+1, Args...>::value>-1, "specified placeholder is not found, please check");
