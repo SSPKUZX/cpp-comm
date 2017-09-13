@@ -2,7 +2,7 @@
 
 #include <utility>
 
-namespace cmn
+namespace utl 
 {
 	/*
 	 * support deep copy for pointer member

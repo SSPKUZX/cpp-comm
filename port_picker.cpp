@@ -2,12 +2,11 @@
 
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <cstdlib>
 #include <cmath>
 #include <sys/types.h>
 #include <sys/socket.h>
 
-namespace usual 
+namespace utl 
 {
 	
 	uint32_t try_port( uint32_t const port ) 
@@ -35,21 +34,4 @@ namespace usual
 		return ret_port;	
 	}
 	
-	
-	uint32_t ranged( uint32_t const from, uint32_t const to)
-	{
-		return std::min(from, to) + rand() % ( std::abs((int)(to - from)) + 1);
-	}
-	
-
-	uint32_t assigned( uint32_t const port)
-	{
-		return port;
-	}
-	
-	bool is_valid_port( uint32_t const port)
-	{
-		return port > 0 && port < 65536;
-	}
-	
-} // end of usual 
+} // end of utl 

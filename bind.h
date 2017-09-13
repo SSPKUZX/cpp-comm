@@ -14,9 +14,9 @@ namespace utl{
 	
 	template<std::size_t N, class... Args, std::size_t... Is>
 	struct make_phindexes< N,std::tuple<Args...>,IndexSequence<Is...> > 
-		: make_phindexes< N-1,std::tuple<Args...>, typename std::conditional<
-		0!=std::is_placeholder<typename std::decay<typename nth_type<N-1,Args...>::type>::type>::value,
-		IndexSequence<N-1,Is...>, IndexSequence<Is...> >::type >{};
+		: make_phindexes< N-1,std::tuple<Args...>, conditional_t<
+		0!=std::is_placeholder<decay_t<nth_type_t<N-1,Args...>>>::value,
+		IndexSequence<N-1,Is...>, IndexSequence<Is...> > >{};
 	
 	template<class... Args, std::size_t... Is>
 	struct make_phindexes<0, std::tuple<Args...>, IndexSequence<Is...> > : IndexSequence<Is...>{};
@@ -28,9 +28,9 @@ namespace utl{
 	
 	template<std::size_t N, class... Args, std::size_t... Is>
 	struct make_nonphindexes< N,std::tuple<Args...>,IndexSequence<Is...> > 
-		: make_nonphindexes< N-1,std::tuple<Args...>, typename std::conditional<
-		0==std::is_placeholder<typename std::decay<typename nth_type<N-1,Args...>::type>::type>::value,
-		IndexSequence<N-1,Is...>, IndexSequence<Is...> >::type >{};
+		: make_nonphindexes< N-1,std::tuple<Args...>, conditional_t<
+		0==std::is_placeholder<decay_t<nth_type_t<N-1,Args...>>>::value,
+		IndexSequence<N-1,Is...>, IndexSequence<Is...> > >{};
 	
 	template<class... Args, std::size_t... Is>
 	struct make_nonphindexes<0, std::tuple<Args...>, IndexSequence<Is...> > : IndexSequence<Is...>{};
@@ -39,9 +39,9 @@ namespace utl{
 	// (_2,int,_1,char) -> <1,0>
 	template<class Tuple, std::size_t... Is>
 	inline auto phvs( IndexSequence<Is...>)
-		-> IndexSequence< (std::is_placeholder<typename std::decay<typename std::tuple_element<Is,Tuple>::type>::type>::value-1)...>	
+		-> IndexSequence< (std::is_placeholder<decay_t<tuple_element_t<Is,Tuple>>>::value-1)...>	
 	{
-		return IndexSequence< (std::is_placeholder<typename std::decay<typename std::tuple_element<Is,Tuple>::type>::type>::value-1)...>{};	
+		return IndexSequence< (std::is_placeholder<decay_t<tuple_element_t<Is,Tuple>>>::value-1)...>{};	
 	}
 	template<class... Args>
 	struct PHVsGenerator{
@@ -71,14 +71,14 @@ namespace utl{
 				setTupleValue(*m_args_uptr, 
 							  IndexSequence<PHIs...>{},
 							  std::make_tuple( std::forward<typename function_traits<F>::template args<PHIs>::type>(args)... ),
-						//	  MakeIndexSequence<sizeof...(PHIs)>{}
+						//	  MakeIndexSequence<sizeof...(PHIs)>{} // placeholders are strictly in order like _1,_2,_3... 
 							  m_phvs_generator()
 						 );	
 				return ApplyTuple(m_functor, *m_args_uptr);
 			}
 	
 		private:
-			typename std::decay<F>::type						m_functor;	
+			decay_t<F>											m_functor;	
 			uptr<typename function_traits<F>::args_tuple_type>	m_args_uptr;
 			PHVsGeneratorType									m_phvs_generator;
 	};

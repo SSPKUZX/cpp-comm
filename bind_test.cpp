@@ -9,7 +9,9 @@
  *  step one : assume placeholders are placed in bind in order like _1,_2...
  *				--> DONE
  *  step two : bind value to corresponding placeholders even placeholders are in disorder
- *
+ *				--> DONE
+ *	step three : test std::ref if copying is wanted or parameter is only movable
+ *				--> ING				
  * */
 
 using namespace utl;

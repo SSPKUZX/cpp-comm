@@ -1,5 +1,5 @@
+#include "ptr.h"
 #include "variadic.h"
-#include "make_unique.h"
 #include "demangle.h"
 
 namespace utl 
@@ -57,7 +57,7 @@ namespace utl
 					}
 				};
 				
-				MetaHolder() : s_label_names(::cmn::make_unique<std::string[]>(sizeof...(Labels)))
+				MetaHolder() : s_label_names(::utl::make_unique<std::string[]>(sizeof...(Labels)))
 				{
 					uint8_t index = 0;
 					utl::detail::variadic_np<EnumHook, Labels...>()( s_label_names, index);
@@ -79,10 +79,10 @@ namespace utl
 namespace std
 {
 	template<class... Types>
-	struct hash<::cmn::Enum<Types...>>
+	struct hash<::utl::Enum<Types...>>
 	{
 		std::hash<int> hasher;		
-		size_t operator()( ::cmn::Enum<Types...> const& e) const
+		size_t operator()( ::utl::Enum<Types...> const& e) const
 		{
 			return hasher(static_cast<int>(e));	
 		}

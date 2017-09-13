@@ -5,7 +5,7 @@
 class BizImpl
 {
 	public:
-		BizImpl()
+		BizImpl() : m_int(0)
 		{
 			std::cout << __PRETTY_FUNCTION__ << " gets called\n";	
 		}
@@ -19,22 +19,20 @@ class BizImpl
 };
 
 
-Biz::Biz() : m_impl( new BizImpl() ){ }//	= default;
-Biz::~Biz() = default;
+//Biz::Biz() : m_impl( new BizImpl() ){ }//	= default;
+//Biz::~Biz() = default;
 
 void Biz::DoWork()
 {
 	m_impl->DoWork();
 }
 
-/*
+
 int main()
 {
-	BizImpl* pBiz = nullptr;
-	// this would work because 'DoWork' doesn't use member data
-	// it's an absolute address
-	pBiz->DoWork();
+	Biz biz;
+//	biz.DoWork();
 
 	return 0;
 }
-*/
+

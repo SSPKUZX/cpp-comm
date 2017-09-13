@@ -56,7 +56,7 @@ namespace json
 	bool ser( json_type& json, std::type_index const& type, _Args const&... args )
 	{
 		impl::SerInvoker invoker(type);	
-		auto isSucc = comm::call_each( invoker, args... );
+		auto isSucc = utl::call_each( invoker, args... );
 		// error msg should be logged if failed
 		return isSucc ? json = invoker.get(), isSucc : isSucc ;
 	}
@@ -66,7 +66,7 @@ namespace json
 	{
 		impl::DesInvoker invoker(json, type);	
 		// error msg should be logged if failed
-		return comm::call_each( invoker, args... );
+		return utl::call_each( invoker, args... );
 	}
 
 } // end of json

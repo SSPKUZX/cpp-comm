@@ -8,6 +8,17 @@
 
 namespace utl 
 {
+	template<bool Enabled, class Type=void>
+	using enable_if_t = typename std::enable_if<Enabled, Type>::type;
+	template<class Signature>
+	using result_of_t = typename std::result_of<Signature>::type;
+	template<bool Cond, class T, class U>
+	using conditional_t	= typename std::conditional<Cond, T, U>::type;
+	template<std::size_t I, class Tuple>
+	using tuple_element_t = typename std::tuple_element<I, Tuple>::type;	
+	template<class T>
+	using decay_t = typename std::decay<T>::type;
+
 	template<class Signature>
 	struct is_invokable : public std::false_type{};
 
@@ -15,7 +26,7 @@ namespace utl
 	struct is_invokable<F(Args...)>
 	{
 		private:	
-			template< class F2, class R2=typename std::result_of<F2(Args...)>::type >
+			template< class F2, class R2=result_of_t<F2(Args...)> >
 			static constexpr std::true_type check(int);
 			template<class F2>
 			static constexpr std::false_type check(...);
@@ -30,9 +41,9 @@ namespace utl
 	template<class F, class R, class...Args>
 	struct is_signature<F, R(Args...)>{
 		private:	
-			template< class F2, class R2=typename std::result_of<F2(Args...)>::type >
+			template< class F2, class R2=result_of_t<F2(Args...)> >
 			static constexpr auto check(int)
-			-> typename std::conditional<std::is_same<R,R2>::value, std::true_type, std::false_type>::type;
+			-> conditional_t<std::is_same<R,R2>::value, std::true_type, std::false_type>;
 			template<class F2>
 			static constexpr std::false_type check(...);
 		public:
@@ -41,9 +52,11 @@ namespace utl
 
 	template<size_t I, class... Args>
 	struct nth_type{
-		using type = typename std::tuple_element<I, std::tuple<Args...>>::type;	
+		using type = tuple_element_t<I, std::tuple<Args...>>;	
 	};
 
+	template<size_t I, class... Args>
+	using nth_type_t = typename nth_type<I,Args...>::type;
 	
 	template<class T,class... Args>
 	struct index_of{};
@@ -93,10 +106,10 @@ namespace utl
 	struct function_traits<RetType(Args...) > : public std::true_type{
 		static const size_t arity = sizeof...(Args);
 		using return_type = RetType;	
-		using args_tuple_type = std::tuple<typename std::decay<Args>::type...>;
+		using args_tuple_type = std::tuple<decay_t<Args>...>;
 		template<size_t I>
 		struct args{
-			using type = typename nth_type<I, Args...>::type;	
+			using type = nth_type_t<I, Args...>;	
 		};	
 	};
 
@@ -117,12 +130,12 @@ namespace utl
 	struct function_traits<RetType(ClassType::*)(Args...) >{
 		static const size_t arity = 1+sizeof...(Args);
 		using return_type = RetType;	
-		using args_tuple_type = std::tuple<ClassType*,typename std::decay<Args>::type...>;
-		using args_tuple_type_ = std::tuple<typename std::decay<Args>::type...>; // helper for function class 
+		using args_tuple_type = std::tuple<ClassType*,decay_t<Args>...>;
+		using args_tuple_type_ = std::tuple<decay_t<Args>...>; // helper for function class 
 		template<size_t I>
 		struct args{
 			static_assert(I>0, "I in args should be greater than 0 when Signature is member function");
-			using type = typename std::tuple_element<I-1, std::tuple<Args...>>::type;	
+			using type = nth_type_t<I-1, Args...>;	
 		};	
 	};
 
@@ -142,7 +155,7 @@ namespace utl
 	// for lambda && std::function && class with customized operator() 
 	// ClassType* is not necessary for above types compared to member function 
 	template<class Signature >
-	struct function_traits<Signature, typename std::enable_if<is_function<Signature>::value>::type> {
+	struct function_traits<Signature, enable_if_t<is_function<Signature>::value>> {
 		using ft= function_traits<decltype(&Signature::operator())>;
 		static const size_t arity = ft::arity-1;
 		using return_type = typename ft::return_type;	
@@ -166,7 +179,7 @@ namespace utl
 		static_assert(I>0, "I should be greater than 0 in placeholder_index, because \
 				std::is_placeholder<_1>::value is 1 while it's zero_index parameter");
 		enum{ pre_value	= placeholder_index<I, Args...>::value, 
-			  value = (I == std::is_placeholder<typename std::decay<T>::type>::value) ? 
+			  value = (I == std::is_placeholder<decay_t<T>>::value) ? 
 				  0 : ((pre_value==-1)?-1:(1+pre_value)),
 		};
 	};

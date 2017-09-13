@@ -96,7 +96,7 @@ int main(int argc, char* argv[] )
 	using namespace std::placeholders;
 	// tesing std::bind
 	auto binded = std::bind(func2, 3, _1);
-	std::cout << comm::demangle(typeid(binded)) << '\n';
+	std::cout << demangle(typeid(binded)) << '\n';
 	assert(is_signature<decltype(binded),int(type)>::value);
 	assert(not is_signature<decltype(binded), int(std::string)>::value);
 	assert(not is_invokable<decltype(binded)(std::string)>::value);
@@ -105,11 +105,27 @@ int main(int argc, char* argv[] )
 	assert(function_traits<decltype(binded)>::value);
 	assert(function_traits<decltype(binded)>::arity==1);
 	using arg1=typename function_traits<decltype(binded)>::template args<0>::type;
-	std::cout << comm::demangle<arg1>() << '\n';	
+	std::cout << demangle<arg1>() << '\n';	
 	assert(std::is_same<arg1,type>::value);
 	auto binded2 = std::bind(&type2::func,_1,_2);
 	using arg2=typename function_traits<decltype(binded2)>::template args<1>::type;
 	assert(std::is_same<arg2,int>::value);
+
+	// index_of
+	assert((index_of<int>::value == -1));
+	assert((index_of<int,int>::value == 0));
+	assert((index_of<int,long,int>::value == 1));
+
+	//one_of 
+	assert(!one_of<int>::value);
+	assert((one_of<int,int>::value));
+	assert((one_of<int,long,int>::value));
+
+	// has_duplicate
+	assert((!has_duplicate<>::value));	
+	assert((!has_duplicate<int>::value));	
+	assert((has_duplicate<int,int>::value));	
+	assert((has_duplicate<int,long,int>::value));	
 
 	return 0;
 }
