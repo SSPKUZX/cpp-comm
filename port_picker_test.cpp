@@ -28,6 +28,10 @@ int main( int argc, char* argv[])
 		std::cout << std::boolalpha <<is_valid_port( port ) << std::endl;
 	}
 
+	auto wa = std::bind(port_picker(), _1, 31050, 31099);// --> wonderful
+	std::cout << std::boolalpha << is_valid_port( wa(ranged) ) << std::endl;
+	
+
 	return 0;
 }
 

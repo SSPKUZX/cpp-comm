@@ -30,14 +30,6 @@ namespace utl
 
 		// const src mean new container
 		// filter should not support SeqContainer type change
-	/*	template< template<class TR, class alloc = std::allocator<TR>> class RSeqContainer,
-				  template<class T2, class alloc = std::allocator<T2>> class SeqContainer, 
-				  typename DT= typename std::decay<T>::type >
-		RSeqContainer<DT> operator()( SeqContainer<DT> const& src) const{ 
-			RSeqContainer<DT> dest;
-			std::copy_if( src.begin(), src.end(), std::back_inserter(dest), m_functor);
-			return std::move(dest);
-		}*/
 		template< template<class T2, class alloc = std::allocator<T2>> class SeqContainer, 
 				  typename DT= typename std::decay<T>::type >
 		inline SeqContainer<DT> operator()( SeqContainer<DT> const& src) const{ 

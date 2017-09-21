@@ -96,6 +96,7 @@ namespace utl{
 					make_phindexes< sizeof...(Args),std::tuple<Args...>,IndexSequence<> >{} )
 				)
 	{
+		static_assert(function_traits<F>::arity == sizeof...(Args), "sizeof...(Args) must be equal to F's parameter count.");
 		auto args_values_ptr = new typename function_traits<F>::args_tuple_type(); 
 		// set those binded args
 		setTupleValue(*args_values_ptr, 
