@@ -6,12 +6,13 @@
 #include<set>
 #include<unordered_set>
 #include<iostream>
+#include<cassert>
 
-#include"stl.h"
+#include"alg.h"
 
 int main(int argc, char* argv[])
 {
-	using namespace utl;
+	using namespace alg;
 
 	std::map<int, int> i2i= { {2,3} };
 	auto _map_it = find(i2i, 2);
@@ -81,6 +82,26 @@ int main(int argc, char* argv[])
 	}
 	std::cout << '\n';
 	std::cout << typeid(lst2).name() << '\n';
+
+	// testing one/none_of
+
+	//initializer_list
+	assert(alg::one_of(4, {5,6,4}) );
+	assert(alg::none_of(8, {5,6,4}) );
+
+	// sequential container
+	std::vector<int> c{0,9,8};
+	assert(not alg::one_of(4, c));
+	assert(alg::none_of(4, c));
+	assert(alg::one_of(9, c));
+	assert(not alg::none_of(9, c));
+
+	//set
+	std::set<int> s{0,9,8};
+	assert(not alg::one_of(4, s));
+	assert(alg::none_of(4, s));
+	assert(alg::one_of(9, s));
+	assert(not alg::none_of(9, s));
 
 	return 0;
 }

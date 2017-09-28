@@ -1,77 +1,31 @@
+#include "data_flow.h"
+
+#include <list>
+#include <deque>
 #include <iostream>
-#include <vector>
-#include <fstream>
+#include <cassert>
 
-#include "pipelize.h"
-
-using namespace std;
 using namespace utl;
 
-// read records from file
-vector<string> read_file(std::string const& filePath){ 
-	fstream input(filePath);
-	if(input) cout << "succ in reading " << filePath << '\n';
-	else cout << "fail in reading " << filePath << '\n'; 
-	vector<string> ips;
-	string line;
-	while( input >> line )
-	{
-		ips.push_back(line);
-	}
-	input.close();
-	return std::move(ips);
-}
-
-// sort elements
-struct sorter{
-	template< template<class T, class alloc = std::allocator<T>> class SeqContainer, class T>
-	inline SeqContainer<T> operator()( SeqContainer<T> const& records) const{
-		SeqContainer<T> ret(records);
-		std::sort(ret.begin(), ret.end());	
-		return std::move(ret);
-	}
-
-	template< template<class T, class alloc = std::allocator<T>> class SeqContainer, class T>
-	inline SeqContainer<T>& operator()( SeqContainer<T>& records) const{
-		std::sort(records.begin(), records.end());	
-		return records;
-	}
-
-	template< template<class T, class alloc = std::allocator<T>> class SeqContainer, class T>
-	inline SeqContainer<T> operator()( SeqContainer<T>&& records) const{
-		std::sort(records.begin(), records.end());	
-		return std::move(records);
-	}
-
-};
-
-inline sorter sort(){ return sorter(); }
-
-// calcalute difference set
-template< template<class T, class alloc = std::allocator<T>> class SeqContainer, class T> 
-struct difference{
-	difference( SeqContainer<T> && records) : m_right_records( std::move(records) ){
-		sort(m_right_records.begin(), m_right_records.end());
-	}
-
-	template< template<class T2, class alloc = std::allocator<T2>> class SeqContainer2, class T2> 
-	inline SeqContainer<T> operator()(SeqContainer2<T2> const& leftRecords) const{
-		SeqContainer<T> diff;
-		set_difference(m_right_records.begin(), m_right_records.end(), leftRecords.begin(), leftRecords.end(), back_inserter(diff));	
-		return std::move(diff);
-	}	
-
-	private:
-		SeqContainer<T>	m_right_records;
-};
-
-
-template< template<class T, class alloc = std::allocator<T>> class SeqContainer, class T> 
-inline difference<SeqContainer, T> differenciate(SeqContainer<T> records){
-	return difference<SeqContainer,T>(std::move(records));
-}
+int plus2(int a, int b){ return a+b;}
 
 int main(){
+
+//	std::vector<int> numbers{4,8,15,16,23,42};
+//	std::deque<int> numbers{4,8,15,16,23,42};
+	std::list<int> numbers{4,8,15,16,23,42};
+//	using setType = decltype(numbers);
+//	auto where = piped2Args(whereInList<setType>);
+//	auto map = piped2Args(mapToList<setType>);
+//	auto log = piped1Arg(logList<setType>);
+	auto const& cn1 = numbers;
+	auto&&  cn2 = cn1 | filter([](int x){ return (x > 10); });
+	assert(&cn1!=&cn2);
+	auto&&  n2 = numbers | filter([](int x){ return (x > 10); }) | filter(std::less<int>(), _1, 25);
+	assert(&numbers==&n2);
+
+	n2 | map([](int x){ return x + 1; }) | map<std::vector>( plus2, _1,2) | map<std::deque>( std::plus<int>(), _1,3) | log();
+
 	read_file("online_ips.txt") | sort() | differenciate( read_file("all_ips.txt") ) | utl::log();
 	return 0;
 }

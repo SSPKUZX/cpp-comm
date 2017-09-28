@@ -1,6 +1,6 @@
 #pragma once
 
-namespace utl 
+namespace alg 
 {
 namespace detail
 {
@@ -70,4 +70,4 @@ auto find( Container const& container, Equaler const& equaler)
 	return  finder( container, equaler ); 
 }
 
-}// end of utl 
+}// end of alg 

@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace utl 
+namespace alg 
 {
 	namespace detail
 	{
@@ -33,6 +33,15 @@ namespace utl
 		return transform<SeqContainer,SeqContainer>(source, std::forward<F>(transformer));
 	}
 
-}// end of utl 
+	// initializer_list, sequencial containers and sets, map excluded
+	template<template<class T, class... Args> class ContainerType=std::initializer_list, class T>
+	inline bool one_of( T const& val, ContainerType<T> const& container){
+		return std::any_of(container.begin(), container.end(), std::bind1st(std::equal_to<T>(),val) );	
+	}
+	template<template<class T, class... Args> class ContainerType=std::initializer_list, class T>
+	inline bool none_of( T const& val, ContainerType<T> const& container){
+		return not one_of(val, container);
+	}
+}// end of alg 
 
-#include "stl_inl.h"
+#include "alg_inl.h"

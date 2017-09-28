@@ -40,6 +40,6 @@ class Defer
 #undef	UTL_DEFER
 #define UTL_DEFER _MAKE_DEFER_HELPER_(__COUNTER__)
 
-} // end namespace ananas
+} // end namespace utl 
 
 

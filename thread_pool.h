@@ -5,7 +5,7 @@
 #include <queue>
 
 #include "noncopyable.h"
-#include "make_unique.h"
+#include "ptr.h"
 
 namespace thd
 {
@@ -23,7 +23,7 @@ namespace thd
 			explicit RunnableWrapper( std::packaged_task<RetType()>&& task) : m_task(std::move(task)){}
 			~RunnableWrapper(){}
 
-			virtual void Run() override{
+			inline virtual void Run() override{
 				m_task();	
 			}
 
