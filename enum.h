@@ -1,4 +1,5 @@
 #include "ptr.h"
+#include "traits.h"
 #include "variadic.h"
 #include "demangle.h"
 
@@ -13,8 +14,8 @@ namespace utl
 			template<class T>
 			bool Is() const
 			{ 
-				static_assert(::utl::one_of<T,Labels...>::value,"T must be one of Labels");
-				return m_index==utl::index_of<T, Labels...>::value; 
+				static_assert(one_of<T,Labels...>::value,"T must be one of Labels");
+				return m_index==index_of<T, Labels...>::value; 
 			}
 		
 			// tostring
@@ -30,8 +31,8 @@ namespace utl
 			template<class T>
 			static Enum Of()
 			{ 
-				static_assert(::utl::one_of<T,Labels...>::value,"T must be one of Labels");
-				return Enum(utl::index_of<T, Labels...>::value);
+				static_assert(one_of<T,Labels...>::value,"T must be one of Labels");
+				return Enum(index_of<T, Labels...>::value);
 			}
 
 			template<class... _Labels>
@@ -53,14 +54,14 @@ namespace utl
 				{
 					void operator()( std::unique_ptr<std::string[]>& names, uint8_t& index)	
 					{
-						names[index++] = utl::demangle(typeid(T));	
+						names[index++] = demangle(typeid(T));	
 					}
 				};
 				
-				MetaHolder() : s_label_names(::utl::make_unique<std::string[]>(sizeof...(Labels)))
+				MetaHolder() : s_label_names(make_unique<std::string[]>(sizeof...(Labels)))
 				{
 					uint8_t index = 0;
-					utl::detail::variadic_np<EnumHook, Labels...>()( s_label_names, index);
+					vtypes<EnumHook, Labels...>()( s_label_names, index);
 				}
 			} meta;
 	};
@@ -74,7 +75,7 @@ namespace utl
 		os << Enum<_Labels...>::meta.s_label_names[val.m_index];
 		return os; 
 	}
-} // end of cmn
+} // end of utl 
 
 namespace std
 {

@@ -50,6 +50,7 @@ namespace utl
 		Predicate m_pred;
 	};
 
+	// alike std::not1/std::not2
 	template<class Predicate>
 	inline not0_wrapper<Predicate> not0( Predicate&& pred){
 		return not0_wrapper<Predicate>(std::forward<Predicate>(pred) );			

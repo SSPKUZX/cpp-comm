@@ -6,7 +6,7 @@ namespace alg
 {
 	namespace detail
 	{
-		template<class iterator>
+		template<class InputIterator, class T=typename std::iterator_traits<InputIterator>::value_type>
 		class findee;
 	}
 	// support for finding key for map/set 
@@ -25,7 +25,6 @@ namespace alg
 		std::transform(source.begin(), source.end(), dest.begin(), std::forward<F>(transformer));
 		return std::move(dest);	
 	}
-
 	// transform SeqContainer<ST> to SeqContainer<DT>
 	template<template<class T, class Alloc = std::allocator<T>> class SeqContainer, 
 		class ST, class F, class DT = typename std::result_of<F(ST&)>::type >
@@ -34,11 +33,11 @@ namespace alg
 	}
 
 	// initializer_list, sequencial containers and sets, map excluded
-	template<template<class T, class... Args> class ContainerType=std::initializer_list, class T>
+	template<template<class, class...> class ContainerType=std::initializer_list, class T>
 	inline bool one_of( T const& val, ContainerType<T> const& container){
 		return std::any_of(container.begin(), container.end(), std::bind1st(std::equal_to<T>(),val) );	
 	}
-	template<template<class T, class... Args> class ContainerType=std::initializer_list, class T>
+	template<template<class, class...> class ContainerType=std::initializer_list, class T>
 	inline bool none_of( T const& val, ContainerType<T> const& container){
 		return not one_of(val, container);
 	}

@@ -27,7 +27,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace comm{
+namespace utl{
 
 /*
  * ProducerConsumerQueue is a one producer and one consumer queue

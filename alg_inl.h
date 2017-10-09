@@ -4,22 +4,30 @@ namespace alg
 {
 namespace detail
 {
-	template< class iterator>
+	template< class InputIterator, class T>
 	class findee
 	{
 		public:
-			findee( bool isFound, iterator const& it) : m_is_found( isFound ), m_it( it){} 
-			operator bool() const { return m_is_found; }
-			iterator const& get() const { return m_it; }
+			findee( bool isFound, InputIterator it) : m_not_end( isFound ), m_it( it){} 
 
+			// return if the iterator is valid( not end) 
+			operator bool() const { return m_not_end; }
+			// retrieve the raw iterator
+			inline InputIterator operator()(){ return m_it; } // support for sets/maps's ambiguous operations
+
+			// behave like a iterator
+			inline auto operator*() -> decltype(*std::declval<InputIterator>())
+			{ return *m_it; } 
+			inline InputIterator operator->(){ return m_it; }
+			
 		private:
-			bool		m_is_found;
-			iterator	m_it;
+			bool			m_not_end;
+			InputIterator	m_it;
 	};
 
-	template< class iterator>
-	inline findee<iterator> make_findee( bool found, iterator it){
-		return findee<iterator>( found, it );
+	template< class InputIterator>
+	inline findee<InputIterator> make_findee( bool found, InputIterator it){
+		return findee<InputIterator>( found, it );
 	}
 
 	// for unordered_map/map/unordered_set/set
