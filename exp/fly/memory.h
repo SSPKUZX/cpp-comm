@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <folly/Traits.h>
-
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
@@ -26,7 +24,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace folly {
+namespace utl {
 
 /**
  * For exception safety and consistency with make_shared. Erase me when
@@ -83,9 +81,19 @@ make_unique(Args&&...) = delete;
  *      auto buf = std::unique_ptr<BIO, BIO_deleter>(BIO_new(BIO_s_mem()));
  *      buf = nullptr;  // calls BIO_free(buf.get())
  */
-
+/*
 template <typename T, void(*f)(T*)>
 struct static_function_deleter {
+  void operator()(T* t) const {
+    f(t);
+  }
+};
+*/
+// no need to specify T again
+template<class FPtr>
+struct static_function_deleter; 
+template <typename T>
+struct static_function_deleter<void(*f)(T*)> {
   void operator()(T* t) const {
     f(t);
   }
@@ -110,7 +118,7 @@ struct static_function_deleter {
  *      using T = foobar::FooBarAsyncClient;
  */
 template <typename T, typename D>
-std::shared_ptr<T> to_shared_ptr(std::unique_ptr<T, D>&& ptr) {
+inline std::shared_ptr<T> to_shared_ptr(std::unique_ptr<T, D>&& ptr) {
   return std::shared_ptr<T>(std::move(ptr));
 }
 
@@ -133,7 +141,7 @@ std::shared_ptr<T> to_shared_ptr(std::unique_ptr<T, D>&& ptr) {
  *      using T = foobar::FooBarAsyncClient;
  */
 template <typename T>
-std::weak_ptr<T> to_weak_ptr(const std::shared_ptr<T>& ptr) {
+inline std::weak_ptr<T> to_weak_ptr(const std::shared_ptr<T>& ptr) {
   return std::weak_ptr<T>(ptr);
 }
 
@@ -148,314 +156,13 @@ inline void SysFree(void* p) {
 }
 }
 
-using SysBufferDeleter = static_function_deleter<void, &detail::SysFree>;
+//using SysBufferDeleter = static_function_deleter<void, &detail::SysFree>;
+using SysBufferDeleter = static_function_deleter<&detail::SysFree>;
 using SysBufferUniquePtr = std::unique_ptr<void, SysBufferDeleter>;
 inline SysBufferUniquePtr allocate_sys_buffer(size_t size) {
   return SysBufferUniquePtr(::malloc(size));
 }
 
-/**
- * A SimpleAllocator must provide two methods:
- *
- *    void* allocate(size_t size);
- *    void deallocate(void* ptr);
- *
- * which, respectively, allocate a block of size bytes (aligned to the
- * maximum alignment required on your system), throwing std::bad_alloc
- * if the allocation can't be satisfied, and free a previously
- * allocated block.
- *
- * SysAlloc resembles the standard allocator.
- */
-class SysAlloc {
- public:
-  void* allocate(size_t size) {
-    void* p = ::malloc(size);
-    if (!p) throw std::bad_alloc();
-    return p;
-  }
-  void deallocate(void* p) {
-    ::free(p);
-  }
-};
-
-/**
- * StlAllocator wraps a SimpleAllocator into a STL-compliant
- * allocator, maintaining an instance pointer to the simple allocator
- * object.  The underlying SimpleAllocator object must outlive all
- * instances of StlAllocator using it.
- *
- * But note that if you pass StlAllocator<MallocAllocator,...> to a
- * standard container it will be larger due to the contained state
- * pointer.
- *
- * @author: Tudor Bosman <tudorb@fb.com>
- */
-
-// This would be so much simpler with std::allocator_traits, but gcc 4.6.2
-// doesn't support it.
-template <class Alloc, class T> class StlAllocator;
-
-template <class Alloc> class StlAllocator<Alloc, void> {
- public:
-  typedef void value_type;
-  typedef void* pointer;
-  typedef const void* const_pointer;
-
-  StlAllocator() : alloc_(nullptr) { }
-  explicit StlAllocator(Alloc* a) : alloc_(a) { }
-
-  Alloc* alloc() const {
-    return alloc_;
-  }
-
-  template <class U> struct rebind {
-    typedef StlAllocator<Alloc, U> other;
-  };
-
-  bool operator!=(const StlAllocator<Alloc, void>& other) const {
-    return alloc_ != other.alloc_;
-  }
-
-  bool operator==(const StlAllocator<Alloc, void>& other) const {
-    return alloc_ == other.alloc_;
-  }
-
- private:
-  Alloc* alloc_;
-};
-
-template <class Alloc, class T>
-class StlAllocator {
- public:
-  typedef T value_type;
-  typedef T* pointer;
-  typedef const T* const_pointer;
-  typedef T& reference;
-  typedef const T& const_reference;
-
-  typedef ptrdiff_t difference_type;
-  typedef size_t size_type;
-
-  StlAllocator() : alloc_(nullptr) { }
-  explicit StlAllocator(Alloc* a) : alloc_(a) { }
-
-  template <class U> StlAllocator(const StlAllocator<Alloc, U>& other)
-    : alloc_(other.alloc()) { }
-
-  T* allocate(size_t n, const void* /* hint */ = nullptr) {
-    return static_cast<T*>(alloc_->allocate(n * sizeof(T)));
-  }
-
-  void deallocate(T* p, size_t /* n */) { alloc_->deallocate(p); }
-
-  size_t max_size() const {
-    return std::numeric_limits<size_t>::max();
-  }
-
-  T* address(T& x) const {
-    return std::addressof(x);
-  }
-
-  const T* address(const T& x) const {
-    return std::addressof(x);
-  }
-
-  template <class... Args>
-  void construct(T* p, Args&&... args) {
-    new (p) T(std::forward<Args>(args)...);
-  }
-
-  void destroy(T* p) {
-    p->~T();
-  }
-
-  Alloc* alloc() const {
-    return alloc_;
-  }
-
-  template <class U> struct rebind {
-    typedef StlAllocator<Alloc, U> other;
-  };
-
-  bool operator!=(const StlAllocator<Alloc, T>& other) const {
-    return alloc_ != other.alloc_;
-  }
-
-  bool operator==(const StlAllocator<Alloc, T>& other) const {
-    return alloc_ == other.alloc_;
-  }
-
- private:
-  Alloc* alloc_;
-};
-
-/**
- * Helper function to obtain rebound allocators
- *
- * @author: Marcelo Juchem <marcelo@fb.com>
- */
-template <typename T, typename Allocator>
-typename Allocator::template rebind<T>::other rebind_allocator(
-  Allocator const& allocator
-) {
-  return typename Allocator::template rebind<T>::other(allocator);
-}
-
-/*
- * Helper classes/functions for creating a unique_ptr using a custom
- * allocator.
- *
- * @author: Marcelo Juchem <marcelo@fb.com>
- */
-
-// Derives from the allocator to take advantage of the empty base
-// optimization when possible.
-template <typename Allocator>
-class allocator_delete
-  : private std::remove_reference<Allocator>::type
-{
-  typedef typename std::remove_reference<Allocator>::type allocator_type;
-
- public:
-  typedef typename Allocator::pointer pointer;
-
-  allocator_delete() = default;
-
-  explicit allocator_delete(const allocator_type& allocator)
-    : allocator_type(allocator)
-  {}
-
-  explicit allocator_delete(allocator_type&& allocator)
-    : allocator_type(std::move(allocator))
-  {}
-
-  template <typename U>
-  allocator_delete(const allocator_delete<U>& other)
-    : allocator_type(other.get_allocator())
-  {}
-
-  allocator_type& get_allocator() const {
-    return *const_cast<allocator_delete*>(this);
-  }
-
-  void operator()(pointer p) const {
-    if (!p) return;
-    const_cast<allocator_delete*>(this)->destroy(p);
-    const_cast<allocator_delete*>(this)->deallocate(p, 1);
-  }
-};
-
-template <typename T, typename Allocator>
-class is_simple_allocator {
-  FOLLY_CREATE_HAS_MEMBER_FN_TRAITS(has_destroy, destroy);
-
-  typedef typename std::remove_const<
-    typename std::remove_reference<Allocator>::type
-  >::type allocator;
-  typedef typename std::remove_reference<T>::type value_type;
-  typedef value_type* pointer;
-
- public:
-  constexpr static bool value = !has_destroy<allocator, void(pointer)>::value
-    && !has_destroy<allocator, void(void*)>::value;
-};
-
-template <typename T, typename Allocator>
-struct as_stl_allocator {
-  typedef typename std::conditional<
-    is_simple_allocator<T, Allocator>::value,
-    folly::StlAllocator<
-      typename std::remove_reference<Allocator>::type,
-      typename std::remove_reference<T>::type
-    >,
-    typename std::remove_reference<Allocator>::type
-  >::type type;
-};
-
-template <typename T, typename Allocator>
-typename std::enable_if<
-  is_simple_allocator<T, Allocator>::value,
-  folly::StlAllocator<
-    typename std::remove_reference<Allocator>::type,
-    typename std::remove_reference<T>::type
-  >
->::type make_stl_allocator(Allocator&& allocator) {
-  return folly::StlAllocator<
-    typename std::remove_reference<Allocator>::type,
-    typename std::remove_reference<T>::type
-  >(&allocator);
-}
-
-template <typename T, typename Allocator>
-typename std::enable_if<
-  !is_simple_allocator<T, Allocator>::value,
-  typename std::remove_reference<Allocator>::type
->::type make_stl_allocator(Allocator&& allocator) {
-  return std::move(allocator);
-}
-
-/**
- * AllocatorUniquePtr: a unique_ptr that supports both STL-style
- * allocators and SimpleAllocator
- *
- * @author: Marcelo Juchem <marcelo@fb.com>
- */
-
-template <typename T, typename Allocator>
-struct AllocatorUniquePtr {
-  typedef std::unique_ptr<T,
-    folly::allocator_delete<
-      typename std::conditional<
-        is_simple_allocator<T, Allocator>::value,
-        folly::StlAllocator<typename std::remove_reference<Allocator>::type, T>,
-        typename std::remove_reference<Allocator>::type
-      >::type
-    >
-  > type;
-};
-
-/**
- * Functions to allocate a unique_ptr / shared_ptr, supporting both
- * STL-style allocators and SimpleAllocator, analog to std::allocate_shared
- *
- * @author: Marcelo Juchem <marcelo@fb.com>
- */
-
-template <typename T, typename Allocator, typename ...Args>
-typename AllocatorUniquePtr<T, Allocator>::type allocate_unique(
-  Allocator&& allocator, Args&&... args
-) {
-  auto stlAllocator = folly::make_stl_allocator<T>(
-    std::forward<Allocator>(allocator)
-  );
-  auto p = stlAllocator.allocate(1);
-
-  try {
-    stlAllocator.construct(p, std::forward<Args>(args)...);
-
-    return {p,
-      folly::allocator_delete<decltype(stlAllocator)>(std::move(stlAllocator))
-    };
-  } catch (...) {
-    stlAllocator.deallocate(p, 1);
-    throw;
-  }
-}
-
-template <typename T, typename Allocator, typename ...Args>
-std::shared_ptr<T> allocate_shared(Allocator&& allocator, Args&&... args) {
-  return std::allocate_shared<T>(
-    folly::make_stl_allocator<T>(std::forward<Allocator>(allocator)),
-    std::forward<Args>(args)...
-  );
-}
-
-/**
- * IsArenaAllocator<T>::value describes whether SimpleAllocator has
- * no-op deallocate().
- */
-template <class T> struct IsArenaAllocator : std::false_type { };
 
 /*
  * folly::enable_shared_from_this

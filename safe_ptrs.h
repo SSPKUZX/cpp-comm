@@ -12,25 +12,50 @@ namespace utl{
 	 *			automatically
 	 * */
 
+	// deallocate T if T is pointer 
+	// the pointer to relese is allocated on Heap or not 
+	template<bool IsOnHeap >
+	struct Releaser{
+		// delete value_type in vector/list/deque/sets
+		template<class T>
+		void operator()(T* ptr){ if(IsOnHeap){ delete ptr;} };
+		// delete pair<k,v> in unordered/multi/map
+		template<class K, class V>
+		void operator()( std::pair<const K,V*> const& kv){ delete kv.second; };
+		// delete container pointer
+		template< template<class...> class Container, class... Args>
+		void operator()( Container<Args...>* ptr){
+			if( ptr ){
+				// the value pointer is always allocated on heap
+				std::for_each( ptr->begin(), ptr->end(), Releaser<true>());
+				// but the $ptr itself may be allocated on stack
+				if(IsOnHeap){ delete ptr;}
+			}
+		}
+	};
+
+
 	/*
 	 *	solution A: std::unique_ptr<ContainerType, DefaultPtrsDeleter>
 	 * */
-	template<class T>
-	struct SafeUptr_t;
+	template< class ContainerType>
+	struct SafeUptr_t{
+		using type = std::unique_ptr< ContainerType, Releaser<true>>; 
+	};
 	template<class T>
 	using SafeUptr = typename SafeUptr_t<T>::type;	
-
 	template<class T, class... Args>
 	inline SafeUptr<T> MakeSafeUptr(Args&&... args){
 		return SafeUptr<T>( new T(std::forward<Args>(args)...) );	
 	}
 
+/*				####### Deprecated Implementation  #########
 	// support automatic deletion for elements of vector/list/deque/set
 	struct ValuesDeleter{
 		template< template<class, class... > class ValuesType, class T, class... Args >
-		void operator()( ValuesType<T*,Args...>* valuePtr){
-			if( valuePtr ){
-				std::for_each(valuePtr->begin(), valuePtr->end(), std::default_delete<T>() );	
+		void operator()( ValuesType<T*,Args...>* valuesPtr){
+			if( valuesPtr ){
+				std::for_each(valuesPtr->begin(), valuesPtr->end(), Releaser());//std::default_delete<T>() );	
 			}	
 		}	
 	};
@@ -54,7 +79,7 @@ namespace utl{
 	struct SafeUptr_t< MapType<KeyType,ValueType*,Args...> >{
 		using type = std::unique_ptr< MapType<KeyType,ValueType*,Args...>, MappedTypesDeleter >; 
 	};
-
+*/
 
 
 	/*
@@ -87,7 +112,22 @@ namespace utl{
 	 *	currently, forbidding allocation SafePtrs on heap through [operator new] is the best way to stop conversion
 	 *	from SafePtrs to STL containers which may cause memory leaks by deleting stl containers ptr. 
 	 * */
-	template<class T>
+	template<class ContainerType>
+	struct SafePtrs : public ContainerType, Noncopyable{
+		template<class... RArgs>
+		SafePtrs(RArgs&&... rargs) : ContainerType( std::forward<RArgs>(rargs)...){} 
+		// initializer_list can't be forwarded as rargs
+		SafePtrs( std::initializer_list<typename ContainerType::value_type> il) : ContainerType(std::move(il)){}
+
+		// forbid allocation on heap to avoid potential memory leaks
+		void* operator new( std::size_t) = delete;
+		~SafePtrs(){ 
+			Releaser<false>()(static_cast<ContainerType*>(this));
+		}
+	};
+
+/*			#########    Deprecated Implementation  ##########
+ * template<class T>
 	struct SafePtrs;
 	// support for vector/list/deque/set
 	template< template<class, class...> class ValuesType, class T, class... Args >
@@ -120,6 +160,7 @@ namespace utl{
 			MappedTypesDeleter()(this);
 		}
 	};
+*/
 
 	/*
 	 * solution C: user specify pointers as smart_ptrs like std::vector<std::unique_ptr<T>>
