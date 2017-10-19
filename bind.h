@@ -62,24 +62,24 @@ namespace utl{
 	class Binder{
 		public:	
 			Binder(F&& functor, typename function_traits<F>::args_tuple_type*&& args_ptr) 
-				: m_functor(functor), m_args_uptr(args_ptr){}
+				: m_functor(functor), m_args_sptr(args_ptr){}
 	
 			// this is the final signature we want 
 			auto operator()( typename function_traits<F>::template args<PHIs>::type... args)
 				-> typename function_traits<F>::return_type
 			{
-				setTupleValue(*m_args_uptr, 
+				setTupleValue(*m_args_sptr, 
 							  IndexSequence<PHIs...>{},
 							  std::make_tuple( std::forward<typename function_traits<F>::template args<PHIs>::type>(args)... ),
 						//	  MakeIndexSequence<sizeof...(PHIs)>{} // placeholders are strictly in order like _1,_2,_3... 
 							  m_phvs_generator()
 						 );	
-				return ApplyTuple(m_functor, *m_args_uptr);
+				return ApplyTuple(m_functor, *m_args_sptr);
 			}
 	
 		private:
 			decay_t<F>											m_functor;	
-			uptr<typename function_traits<F>::args_tuple_type>	m_args_uptr;
+			sptr<typename function_traits<F>::args_tuple_type>	m_args_sptr;
 			PHVsGeneratorType									m_phvs_generator;
 	};
 

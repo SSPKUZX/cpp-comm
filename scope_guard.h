@@ -1,4 +1,3 @@
-#pragma once
 /*
  * idea from following articles and folly/ScopeGuard.h
  *   Andrei's and Petru Marginean's CUJ article:
@@ -8,6 +7,8 @@
  *   and triendl.kj article:
  *     http://www.codeproject.com/KB/cpp/scope_guard.aspx
  * */
+#pragma once
+
 #include <functional>
 
 #include "uncaught_exceptions.h"
@@ -15,10 +16,6 @@
 namespace utl{
 	class ScopeGuard{
 		public:	
-			// support implicit conversion
-		//	template<class FuncType>
-		//	explicit ScopeGuard(FuncType&& func) noexcept(std::is_nothrow_constructible<std::function<void()>,FuncType>::value)
-		//		: m_guard(std::forward<FuncType>(func)), m_dismissed(false){}
 			// the compliler will implicitly convert const/FuncType/& to std::function<void(void)> 
 			explicit ScopeGuard( std::function<void(void)> func) 
 				noexcept(std::is_nothrow_move_constructible<std::function<void()>>::value)  
@@ -28,7 +25,6 @@ namespace utl{
 				: m_guard(std::move(other.m_guard)){}
 
 			void Dismiss() noexcept{
-			//	m_dismissed = true;
 				m_guard = nullptr;
 			}
 
@@ -50,7 +46,6 @@ namespace utl{
 
 		private:
 			std::function<void(void)>	m_guard;
-//			bool						m_dismissed;	
 	};
 
 	ScopeGuard MakeGuard(std::function<void(void)> func) 
@@ -64,12 +59,12 @@ namespace utl{
 		return ScopeGuard(std::forward<FuncType>(func));	
 	}
 
-/*
- * If the executeOnException template parameter is true, the function is
- * executed if a new uncaught exception is present at the end of the scope.
- * If the parameter is false, then the function is executed if no new uncaught
- * exceptions are present at the end of the scope.
- */
+	/*
+	 * If ExecuteOnException true, the function is executed if new 
+	 * uncaught exceptions are present at the end of the scope.
+	 * If the parameter is false, then the function is executed if no new 
+	 * uncaught exceptions are present at the end of the scope.
+	 */
 	template<bool ExecuteOnException>
 	class ExceptionalScopeGuard : private ScopeGuard{
 		public:	
@@ -81,6 +76,9 @@ namespace utl{
 				noexcept(std::is_nothrow_move_constructible<std::function<void()>>::value) = default;
 
 			~ExceptionalScopeGuard() noexcept{
+				// when guard should be executed on exception but no exceptions occur
+				// or guard should be executed on no exception but exceptions occur
+				// scope guard should be dismissed
 				if (ExecuteOnException ^ hasNewUncaughtExceptions() ) {
 					this->Dismiss();
 				}

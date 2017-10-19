@@ -117,8 +117,7 @@ namespace utl{
 	template<class... Args>
 	auto To(Args&&... args)
 	-> typename std::enable_if<(sizeof...(Args)>1), std::string>::type{
-		// enable concurrency
-		thread_local std::ostringstream oss;	
+		std::ostringstream oss;	
 		vparams(ToHook(oss), std::forward<Args>(args)...);	
 		return oss.str();
 	}
@@ -127,7 +126,7 @@ namespace utl{
 	//  not integral, not floating point and not string like
 	// then to<std::string> is enabled
 	template<class T>
-	struct is_out_streamed{
+	struct is_out_streamable{
 		template<class U>	
 		static auto test(U* ptr)->decltype( std::declval<std::ostream>() <<*ptr, std::true_type{});
 		template<class U>	
@@ -138,9 +137,8 @@ namespace utl{
 
 	template<class Dst, class Src>
 	auto To(Src const& src)
-	-> typename std::enable_if<is_out_streamed<Src>::value && not std::is_integral<Src>::value && not std::is_floating_point<Src>::value && not is_string_like<Src>::value && std::is_same<std::string,Dst>::value, std::string>::type{
-		// enable concurrency
-		thread_local std::ostringstream oss;	
+	-> typename std::enable_if<is_out_streamable<Src>::value && not std::is_integral<Src>::value && not std::is_floating_point<Src>::value && not is_string_like<Src>::value && std::is_same<std::string,Dst>::value, std::string>::type{
+		std::ostringstream oss;	
 		oss<<src;
 		return oss.str();	
 	}

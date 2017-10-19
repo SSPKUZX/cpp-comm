@@ -26,6 +26,6 @@ int main(){
 
 	n2 | map([](int x){ return x + 1; }) | map<std::vector>( plus2, _1,2) | map<std::deque>( std::plus<int>(), _1,3) | log();
 
-	read_file("online_ips.txt") | sort() | differenciate( read_file("all_ips.txt") ) | utl::log();
+	read_file("online_ips.txt") | sort() | differenciate( read_file("all_ips.txt") ) | log();
 	return 0;
 }

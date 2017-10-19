@@ -34,12 +34,12 @@ namespace alg
 
 	// initializer_list, sequencial containers and sets, map excluded
 	template<template<class, class...> class ContainerType=std::initializer_list, class T>
-	inline bool one_of( T const& val, ContainerType<T> const& container){
+	inline bool is_any_of( T const& val, ContainerType<T> const& container){
 		return std::any_of(container.begin(), container.end(), std::bind1st(std::equal_to<T>(),val) );	
 	}
 	template<template<class, class...> class ContainerType=std::initializer_list, class T>
-	inline bool none_of( T const& val, ContainerType<T> const& container){
-		return not one_of(val, container);
+	inline bool is_none_of( T const& val, ContainerType<T> const& container){
+		return not is_any_of(val, container);
 	}
 }// end of alg 
 

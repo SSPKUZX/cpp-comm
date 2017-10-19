@@ -13,6 +13,7 @@ bool json::obj2json<type>( type const& tp, std::string& json )
 	return ser( json, typeid(type), tp.age, tp.workdays );
 }
 
+
 template<>
 bool json::json2obj<type>( std::string const& json, type& tp )
 {

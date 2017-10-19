@@ -19,6 +19,20 @@ namespace utl
 	template<class T>
 	using decay_t = typename std::decay<T>::type;
 
+	// tell if T is member function pointer
+	template<class T>
+	struct is_member_function_ptr											: public std::false_type{}; 
+	template<class RetType, class ClassType, class... Args>
+	struct is_member_function_ptr<RetType(ClassType::*)(Args...)>			: public std::true_type{};
+	template<class RetType, class ClassType, class... Args>
+	struct is_member_function_ptr<RetType(ClassType::*)(Args...) &>			: public std::true_type{};
+	template<class RetType, class ClassType, class... Args>
+	struct is_member_function_ptr<RetType(ClassType::*)(Args...) &&>		: public std::true_type{};
+	template<class RetType, class ClassType, class... Args>
+	struct is_member_function_ptr<RetType(ClassType::*)(Args...) const>		: public std::true_type{};
+	template<class RetType, class ClassType, class... Args>
+	struct is_member_function_ptr<RetType(ClassType::*)(Args...) const&>	: public std::true_type{};
+
 	// is operator() defined
 	template<class T>
 	struct is_function{
@@ -131,9 +145,15 @@ namespace utl
 			using type = nth_type_t<I-1, Args...>;	
 		};	
 	};
-	// for const member function pointer
+	// for other member function pointers
 	template<class RetType, class ClassType, class... Args>
 	struct function_traits<RetType(ClassType::*)(Args...) const> : public function_traits<RetType(ClassType::*)(Args...)>{};
+	template<class RetType, class ClassType, class... Args>
+	struct function_traits<RetType(ClassType::*)(Args...) const&> : public function_traits<RetType(ClassType::*)(Args...)>{};
+	template<class RetType, class ClassType, class... Args>
+	struct function_traits<RetType(ClassType::*)(Args...) &> : public function_traits<RetType(ClassType::*)(Args...)>{};
+	template<class RetType, class ClassType, class... Args>
+	struct function_traits<RetType(ClassType::*)(Args...) &&> : public function_traits<RetType(ClassType::*)(Args...)>{};
 	// for lambda && std::function && class with customized operator() 
 	// ClassType* is not necessary for above types compared to member function 
 	template<class Signature >
