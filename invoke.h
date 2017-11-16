@@ -20,7 +20,7 @@ namespace utl{
 	inline auto Invoke( FuncType&& func, ClassType&& obj, Args&&... args)
 		-> typename std::enable_if<is_member_function_ptr<FuncType>::value 
 								&& std::is_pointer<decay_t<ClassType>>::value,
-		decltype( (std::forward<ClassType>(obj)->*std::forward<FuncType>(func))( std::forward<Args>(args)... ) ) >::type{
+		typename function_traits<FuncType>::return_type>::type {
 		return (std::forward<ClassType>(obj)->*std::forward<FuncType>(func))( std::forward<Args>(args)... );	
 	}	
 	
@@ -29,7 +29,7 @@ namespace utl{
 	inline auto Invoke( FuncType&& func, ClassType&& obj, Args&&... args)
 		-> typename std::enable_if<is_member_function_ptr<FuncType>::value 
 								&& not std::is_pointer<decay_t<ClassType>>::value,
-		decltype( (std::forward<ClassType>(obj).*std::forward<FuncType>(func))( std::forward<Args>(args)... ) ) >::type{
+		typename function_traits<FuncType>::return_type>::type {
 		return (std::forward<ClassType>(obj).*std::forward<FuncType>(func))( std::forward<Args>(args)... );	
 	}	
 /*	struct Invoker{

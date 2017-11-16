@@ -201,6 +201,7 @@ namespace utl
 	};
 	
 	// support for bind expression
+	#ifdef __APPLE__
 	template<class Signature, class... Args >
 	struct function_traits<std::__1::__bind<Signature, Args...> > : public std::true_type{
 		static const size_t arity = placeholder_count<Args...>::value;
@@ -214,6 +215,47 @@ namespace utl
 			using type = typename function_traits<Signature>::template args<placeholder_index<I+1, Args...>::value>::type;	
 		};
 	};
+
+#elif defined(__linux__)
+//std::_Bind<void (*(int))(int, long)>
+	template<class RetType, class... SArgs, class... RArgs>
+	struct function_traits< std::_Bind<RetType(*(RArgs...))(SArgs...)> > : public std::true_type{
+		static const size_t arity = placeholder_count<RArgs...>::value;
+		using return_type = RetType;
+		// no args_tuple_type set
+		template<size_t I>
+		struct args{
+			static_assert(placeholder_index<I+1, RArgs...>::value>-1, "specified placeholder is not found, please check");
+			// if I is 0, then the index of std::placeholders::_1 should be put in 
+			// placeholder_index
+			using type = nth_type_t<placeholder_index<I+1, RArgs...>::value, SArgs...>;		
+		};
+	};
+//std::_Bind<std::_Mem_fn<void (Me::*)(int, long)> (Me*, int, std::_Placeholder<1>)>
+//std::_Bind<std::_Mem_fn<void (Me::*)(int, long)> (Me, int, std::_Placeholder<1>)>
+	template<class RetType, class ClassType, class... SArgs, class... RArgs>
+	struct function_traits< std::_Bind<std::_Mem_fn<RetType(ClassType::*)(SArgs...)> (ClassType*,RArgs...)> > 
+		: public function_traits<std::_Bind<RetType(*(RArgs...))(SArgs...)> >{};
+
+	template<class RetType, class ClassType, class... SArgs, class... RArgs>
+	struct function_traits< std::_Bind<std::_Mem_fn<RetType(ClassType::*)(SArgs...)>(ClassType,RArgs...)> > 
+		: public function_traits<std::_Bind<RetType(*(RArgs...))(SArgs...)> >{};
+
+	//following threes are const member function ptr with classType|pointerType|const pointerType
+	template<class RetType, class ClassType, class... SArgs, class... RArgs>
+	struct function_traits< std::_Bind<std::_Mem_fn<RetType(ClassType::*)(SArgs...) const>(ClassType,RArgs...)> > 
+		: public function_traits<std::_Bind<RetType(*(RArgs...))(SArgs...)> >{};
+
+	template<class RetType, class ClassType, class... SArgs, class... RArgs>
+	struct function_traits< std::_Bind<std::_Mem_fn<RetType(ClassType::*)(SArgs...) const>(ClassType*,RArgs...)> > 
+		: public function_traits<std::_Bind<RetType(*(RArgs...))(SArgs...)> >{};
+
+	template<class RetType, class ClassType, class... SArgs, class... RArgs>
+	struct function_traits< std::_Bind<std::_Mem_fn<RetType(ClassType::*)(SArgs...) const>(const ClassType*,RArgs...)> > 
+		: public function_traits<std::_Bind<RetType(*(RArgs...))(SArgs...)> >{};
+#else 
+	#error unsupported platform
+#endif
 
 	// ################# has func #member ###################
 	#define has_member(member) \

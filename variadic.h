@@ -4,6 +4,29 @@
 
 namespace utl 
 {
+	template<template<size_t> class Hook, size_t... Indexes>
+	class vindexes{};
+	
+	template<template<size_t>class Hook, size_t I, size_t... Indexes>
+	class vindexes<Hook, I, Indexes...> 
+	{
+		public:
+			template<class... Args>
+			inline void operator()( Args&&... args)
+			{
+				Hook<I>()( std::forward<Args>(args)... );
+				vindexes<Hook, Indexes...>()(std::forward<Args>(args)... );	
+			}
+	};
+	
+	template<template<size_t >class Hook>
+	class vindexes<Hook>
+	{
+		public:
+			template<class... Args>
+			inline void operator()( Args&&... args){}
+	};
+
 	// vtypes_helper --> [n]ot as function [p]amameter but pure template parameter
 	// example usage, please refer to cmf/comm/type_indexes_of && instances_of
 	template<template<class> class Hook, class... Types>

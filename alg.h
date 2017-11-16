@@ -41,6 +41,24 @@ namespace alg
 	inline bool is_none_of( T const& val, ContainerType<T> const& container){
 		return not is_any_of(val, container);
 	}
+
+	template<template<class...> class MapType, class KeyType, class ValueType, class... Args>	
+	std::vector<KeyType> KeysOf(MapType<KeyType,ValueType,Args...> const& mapValue){
+		std::vector<KeyType> keys;	
+		keys.reserve(mapValue.size());
+		std::transform(mapValue.begin(), mapValue.end(), std::back_inserter(keys),
+				[](std::pair<KeyType const, ValueType> const& p){ return p.first;});
+		return std::move(keys);
+	}	
+
+	template<template<class...> class MapType, class KeyType, class ValueType, class... Args>	
+	std::vector<ValueType> ValuesOf(MapType<KeyType,ValueType,Args...> const& mapValue){
+		std::vector<ValueType> values;	
+		values.reserve(mapValue.size());
+		std::transform(mapValue.begin(), mapValue.end(), std::back_inserter(values),
+				[](std::pair<KeyType const, ValueType> const& p){ return p.second;});
+		return std::move(values);
+	}	
 }// end of alg 
 
 #include "alg_inl.h"
